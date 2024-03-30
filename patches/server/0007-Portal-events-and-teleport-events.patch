@@ -5,7 +5,7 @@ Subject: [PATCH] Portal events and teleport events
 
 
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 39a639007caf6bb6a01c2596f50d89bb3a247e4b..cab13753742f98d790cfad10db5273d85f9cb047 100644
+index 4138f9c8cde185b8db7c07bdaf43103a13763566..dda65a702476cbdf6fe396671542a84a0a35d2eb 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -7,6 +7,7 @@ import com.google.common.collect.Lists;
@@ -24,7 +24,7 @@ index 39a639007caf6bb6a01c2596f50d89bb3a247e4b..cab13753742f98d790cfad10db5273d8
  import org.joml.Vector3f;
  import org.slf4j.Logger;
  import org.bukkit.Bukkit;
-@@ -4012,7 +4014,15 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -4048,7 +4050,15 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
          if (!this.canTeleportAsync()) {
              return false;
          }
@@ -41,7 +41,7 @@ index 39a639007caf6bb6a01c2596f50d89bb3a247e4b..cab13753742f98d790cfad10db5273d8
          if ((teleportFlags & TELEPORT_FLAG_UNMOUNT) == 0L) {
              for (Entity entity : this.getIndirectPassengers()) {
                  if (!entity.canTeleportAsync()) {
-@@ -4446,6 +4456,21 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
+@@ -4482,6 +4492,21 @@ public abstract class Entity implements Nameable, EntityAccess, CommandSource, S
                  // we just have to abandon this teleport to prevent duplication
                  return;
              }
