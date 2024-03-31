@@ -1,3 +1,5 @@
+> Be aware that this project may have memory leakage issues and use with caution
+
 <img src="./public/image/LightingLuminol_LL方_白_字.png" alt="Logo" align="right" width="250">
 
 # LightingLuminol
