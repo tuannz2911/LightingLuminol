@@ -5,10 +5,10 @@ Subject: [PATCH] Disable thread check if the polling thread is global region
 
 
 diff --git a/src/main/java/net/minecraft/server/level/ServerChunkCache.java b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
-index 313db44c6045cd9710f965010234849c69dcf6e8..5c78254fcd983c9979890f0f22290e2bdf415e2c 100644
+index e3fecedf153e21a7842faf037393974b5ff545ac..ea830d500a3b26ef4c87f9d4b7e9136e1223c922 100644
 --- a/src/main/java/net/minecraft/server/level/ServerChunkCache.java
 +++ b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
-@@ -885,8 +885,10 @@ public class ServerChunkCache extends ChunkSource {
+@@ -884,8 +884,10 @@ public class ServerChunkCache extends ChunkSource {
          // CraftBukkit start - process pending Chunk loadCallback() and unloadCallback() after each run task
          public boolean pollTask() {
              // Folia start - region threading
