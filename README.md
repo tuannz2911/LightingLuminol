@@ -1,4 +1,5 @@
-> 注意 这个项目可能存在内存泄露问题 谨慎使用
+> [!CAUTION]
+> 注意 此项目可能存在内存泄露问题 请谨慎使用
 
 <img src="./public/image/LightingLuminol_LL方_白_字.png" alt="Logo" align="right" width="250">
 
