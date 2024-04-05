@@ -1,3 +1,4 @@
+> [!CAUTION]
 > Be aware that this project may have memory leakage issues and use with caution
 
 <img src="./public/image/LightingLuminol_LL方_白_字.png" alt="Logo" align="right" width="250">
@@ -48,10 +49,10 @@ For maven
 ## Contact
 > If you are interested in this project or have any issue, feel free to ask us.
 
-QQ Group: `368632360` | QQ Channel: [Click To Join](https://pd.qq.com/s/eq9krf9j) | Telegram: [Click To Join](https://t.me/LuminolMC)
+QQ Group: [368632360](http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=MfosKhcDd8Fdxn1MREuZ8Krbf9T6jiBC&authKey=3cm6qdHohON3gHnuD63FK4k07fIbrWnY4hdyq8OmELsfjMVP1kbFTJY9mRyM2Rkj&noverify=0&group_code=368632360) | QQ Channel: [Click To Join](https://pd.qq.com/s/eq9krf9j) | Telegram: [Click To Join](https://t.me/LuminolMC) | Discord: [Click To Join](https://discord.gg/5hgtU72w33)
 
 > [!WARNING]
-> **This project is not related to Leaves.Do not report any bugs about protocol support to leaves because the protocol supports are already refactored.**
+>  **This project is not related to Leaves.Do not report any bugs about protocol support to leaves because the protocol supports are already refactored.**
 
 ## About Issue
 When you meet any problems, just ask us, we will do our best to solve it, but remember to state your problem clear and provide enough logs etc.</br>
