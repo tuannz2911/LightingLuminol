@@ -1,6 +1,6 @@
-> [!CAUTION]
+<!-- [!CAUTION]
 > 注意 此项目可能存在内存泄露问题 请谨慎使用
-
+-->
 <img src="./public/image/LightingLuminol_LL方_白_字.png" alt="Logo" align="right" width="250">
 
 # LightingLuminol
@@ -8,7 +8,7 @@
 <h4>LightingLuminol 是一个基于Luminol的分支，具有许多有用的优化、可配置的原版特性和更多的API支持，目标是在Folia上运行更多Bukkit插件</h4>
 
 [![MIT License](https://img.shields.io/github/license/LuminolMC/LightingLuminol?style=flat-square)](LICENSE)
-[![Issues](https://img.shields.io/github/issues/LuminolMC/LightingLuminol?style=flat-square)](https://github.com/LuminolMC/Luminol/issues)
+[![Issues](https://img.shields.io/github/issues/LuminolMC/LightingLuminol?style=flat-square)](https://github.com/LuminolMC/LightingLuminol/issues)
 ![Commit Activity](https://img.shields.io/github/commit-activity/w/LuminolMC/LightingLuminol?style=flat-square)
 ![GitHub all releases](https://img.shields.io/github/downloads/LuminolMC/LightingLuminol/total?style=flat-square)
 
@@ -49,7 +49,7 @@ For maven
 ## 联系方式
 > 如果您对这个项目感兴趣或有任何问题，请随时向我们提问。
 
-QQ群：`368632360` | QQ频道：[点击加入](https://pd.qq.com/s/eq9krf9j) | Telegram：[点击加入](https://t.me/LuminolMC)
+QQ群: [368632360](http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=MfosKhcDd8Fdxn1MREuZ8Krbf9T6jiBC&authKey=3cm6qdHohON3gHnuD63FK4k07fIbrWnY4hdyq8OmELsfjMVP1kbFTJY9mRyM2Rkj&noverify=0&group_code=368632360) | QQ频道: [点击加入](https://pd.qq.com/s/eq9krf9j) | Telegram: [点击加入](https://t.me/LuminolMC) | Discord: [点击加入](https://discord.gg/5hgtU72w33)
 
 > [!WARNING]
 > **此项目与Leaves无关。不要向Leaves报告任何有关协议支持的错误，因为协议支持已经重构**
