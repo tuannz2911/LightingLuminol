@@ -33,8 +33,8 @@ jobs:
           path: "build/libs/*.jar"
       - name: Rename jar file
         run: |
-          mv build/libs/lightingluminol-bundler-1.20.4-R0.1-SNAPSHOT-reobf.jar build/libs/lightingluminol-1.20.4-bundler.jar
-          mv build/libs/lightingluminol-paperclip-1.20.4-R0.1-SNAPSHOT-reobf.jar build/libs/lightingluminol-1.20.4-paperclip.jar
+          mv build/libs/Lightingluminol-bundler-1.20.4-R0.1-SNAPSHOT-reobf.jar build/libs/lightingluminol-1.20.4-bundler.jar
+          mv build/libs/Lightingluminol-paperclip-1.20.4-R0.1-SNAPSHOT-reobf.jar build/libs/lightingluminol-1.20.4-paperclip.jar
       - name: setenv
         run: |
           sh scripts/SetENV.sh
