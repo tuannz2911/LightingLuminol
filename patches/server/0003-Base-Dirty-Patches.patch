@@ -219,7 +219,7 @@ index 1f48ada99d6d24880f9bda1cd05d41a4562e42f5..4a0ac6acf90f24939656d4a68cef61fa
      }
  
 diff --git a/src/main/java/io/papermc/paper/threadedregions/RegionizedServer.java b/src/main/java/io/papermc/paper/threadedregions/RegionizedServer.java
-index 168ed2c21aed6a10f3aca259880b1b8bdbf98b78..fc54dd2fe77543dff5c7299499a296e54c7591fa 100644
+index 1ae61bc6603dd3ac290e3ead20416f9c5b63ff02..6f3e59b29fe96146cdc08b8352438b8f56ac18f0 100644
 --- a/src/main/java/io/papermc/paper/threadedregions/RegionizedServer.java
 +++ b/src/main/java/io/papermc/paper/threadedregions/RegionizedServer.java
 @@ -19,6 +19,7 @@ import net.minecraft.server.level.ServerLevel;
@@ -1315,7 +1315,7 @@ index 34c0d9fe03cc834e949889f9c4f8269206c18040..4953371d205a1c3982a29252a51dcc99
      public final float yRot;
      public final float xRot;
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-index ead0e0d84d47b227a79c18ea5e0538705b4ff0f3..6899d579da676b63812d717c6a21c9621bd60619 100644
+index ea8852c2b4143e577c2798d63071287eb1c77db6..b5535cba7a2029e6947aed277323fe52f7c69f9d 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
 @@ -14,6 +14,7 @@ import com.mojang.brigadier.tree.CommandNode;
@@ -1344,7 +1344,7 @@ index ead0e0d84d47b227a79c18ea5e0538705b4ff0f3..6899d579da676b63812d717c6a21c962
  public final class CraftServer implements Server {
      private final String serverName = "LightingLuminol"; // Folia // Paper //Luminol //LightingLuminol
      private final String serverVersion;
-@@ -1286,7 +1291,6 @@ public final class CraftServer implements Server {
+@@ -1284,7 +1289,6 @@ public final class CraftServer implements Server {
  
      @Override
      public World createWorld(WorldCreator creator) {
@@ -1352,7 +1352,7 @@ index ead0e0d84d47b227a79c18ea5e0538705b4ff0f3..6899d579da676b63812d717c6a21c962
          Preconditions.checkState(this.console.getAllLevels().iterator().hasNext(), "Cannot create additional worlds on STARTUP");
          //Preconditions.checkState(!this.console.isIteratingOverLevels, "Cannot create a world while worlds are being ticked"); // Paper - Cat - Temp disable. We'll see how this goes.
          Preconditions.checkArgument(creator != null, "WorldCreator cannot be null");
-@@ -1423,7 +1427,7 @@ public final class CraftServer implements Server {
+@@ -1421,7 +1425,7 @@ public final class CraftServer implements Server {
          // Paper start - fix and optimise world upgrading
          if (this.console.options.has("forceUpgrade")) {
              net.minecraft.server.Main.convertWorldButItWorks(
@@ -1361,7 +1361,7 @@ index ead0e0d84d47b227a79c18ea5e0538705b4ff0f3..6899d579da676b63812d717c6a21c962
              );
          }
          // Paper end - fix and optimise world upgrading
-@@ -1446,7 +1450,20 @@ public final class CraftServer implements Server {
+@@ -1444,7 +1448,20 @@ public final class CraftServer implements Server {
          }
  
          this.console.addLevel(internal); // Paper - Put world into worldlist before initing the world; move up
@@ -1383,7 +1383,7 @@ index ead0e0d84d47b227a79c18ea5e0538705b4ff0f3..6899d579da676b63812d717c6a21c962
  
          internal.setSpawnSettings(true, true);
          // Paper - Put world into worldlist before initing the world; move up
-@@ -1465,7 +1482,7 @@ public final class CraftServer implements Server {
+@@ -1463,7 +1480,7 @@ public final class CraftServer implements Server {
  
      @Override
      public boolean unloadWorld(World world, boolean save) {
@@ -1392,7 +1392,7 @@ index ead0e0d84d47b227a79c18ea5e0538705b4ff0f3..6899d579da676b63812d717c6a21c962
          //Preconditions.checkState(!this.console.isIteratingOverLevels, "Cannot unload a world while worlds are being ticked"); // Paper - Cat - Temp disable. We'll see how this goes.
          if (world == null) {
              return false;
-@@ -1493,13 +1510,40 @@ public final class CraftServer implements Server {
+@@ -1491,13 +1508,40 @@ public final class CraftServer implements Server {
          }
  
          try {
