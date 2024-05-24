@@ -4,66 +4,6 @@ Date: Sat, 13 Apr 2024 12:39:47 +0000
 Subject: [PATCH] Base Dirty Patches
 
 
-diff --git a/src/main/java/ca/spottedleaf/concurrentutil/scheduler/SchedulerThreadPool.java b/src/main/java/ca/spottedleaf/concurrentutil/scheduler/SchedulerThreadPool.java
-index 0ce825d7af2a1dbeac5c22640534ee1901edce20..8997c278b3509f6cb8ec52f31a4a08e6e6a2ca70 100644
---- a/src/main/java/ca/spottedleaf/concurrentutil/scheduler/SchedulerThreadPool.java
-+++ b/src/main/java/ca/spottedleaf/concurrentutil/scheduler/SchedulerThreadPool.java
-@@ -3,8 +3,10 @@ package ca.spottedleaf.concurrentutil.scheduler;
- import ca.spottedleaf.concurrentutil.util.ConcurrentUtil;
- import ca.spottedleaf.concurrentutil.util.TimeUtil;
- import com.mojang.logging.LogUtils;
-+import io.papermc.paper.threadedregions.TickRegionScheduler;
- import io.papermc.paper.util.TraceUtil;
- import io.papermc.paper.util.set.LinkedSortedSet;
-+import me.earthme.lightingluminol.tickcontroller.RegionTickHolder;
- import org.slf4j.Logger;
- import java.lang.invoke.VarHandle;
- import java.util.BitSet;
-@@ -490,11 +492,22 @@ public class SchedulerThreadPool {
-                     return;
-                 }
- 
-+                //Molia start - For data pack command
-+                if (!RegionTickHolder.INSTANCE.shouldRunNextTick(((TickRegionScheduler.TickThreadRunner) this.thread))){
-+                    RegionTickHolder.INSTANCE.onRegionRunnerIdle();//Molia - For data pack command
-+                    while (!RegionTickHolder.INSTANCE.shouldRunNextTick((TickRegionScheduler.TickThreadRunner) this.thread)){
-+                        LockSupport.parkNanos("IDLE",1_000_000);
-+                    }
-+                    RegionTickHolder.INSTANCE.onRegionBreakOutIdle(); //Molia - For data pack command
-+                }
-+                //Molia end
-+
-                 switch (startStateType) {
-                     case STATE_IDLE: {
-                         while (this.state.state == STATE_IDLE) {
-                             LockSupport.park();
-                             if (this.scheduler.halted) {
-+                                RegionTickHolder.INSTANCE.onRegionRunnerDestroyed(((TickRegionScheduler.TickThreadRunner) this.thread)); //Molia - For data pack command
-                                 return;
-                             }
-                         }
-@@ -513,6 +526,7 @@ public class SchedulerThreadPool {
-                             }
-                             LockSupport.parkNanos(startState, diff);
-                             if (this.scheduler.halted) {
-+                                RegionTickHolder.INSTANCE.onRegionRunnerDestroyed(((TickRegionScheduler.TickThreadRunner) this.thread)); //Molia - For data pack command
-                                 return;
-                             }
-                         }
-@@ -521,11 +535,12 @@ public class SchedulerThreadPool {
-                             continue main_state_loop;
-                         }
- 
-+                        RegionTickHolder.INSTANCE.onRegionRunnerStartTicking(); //Molia - For data pack command
-                         // TODO exception handling
-                         final boolean reschedule = startStateTask.runTick();
- 
-                         this.returnTask(startStateTask, reschedule);
--
-+                        RegionTickHolder.INSTANCE.onRegionRunnerFinishedCurrentTick(); //Molia - For data pack command
-                         continue main_state_loop;
-                     }
- 
 diff --git a/src/main/java/com/destroystokyo/paper/util/maplist/ReferenceList.java b/src/main/java/com/destroystokyo/paper/util/maplist/ReferenceList.java
 index 190c5f0b02a3d99054704ae1afbffb3498ddffe1..8106114c49e4589a70bf00430a83a132a049e2db 100644
 --- a/src/main/java/com/destroystokyo/paper/util/maplist/ReferenceList.java
@@ -147,30 +87,6 @@ index 190c5f0b02a3d99054704ae1afbffb3498ddffe1..8106114c49e4589a70bf00430a83a132
                  final E lastRet = this.lastRet;
  
                  if (lastRet == null) {
-diff --git a/src/main/java/io/papermc/paper/chunk/system/scheduling/ChunkHolderManager.java b/src/main/java/io/papermc/paper/chunk/system/scheduling/ChunkHolderManager.java
-index 0d8b2a4127e8c8e4970d220b8a2240490da6e7df..5eeda811ca67731b802f8d5b52cb76930a7802a1 100644
---- a/src/main/java/io/papermc/paper/chunk/system/scheduling/ChunkHolderManager.java
-+++ b/src/main/java/io/papermc/paper/chunk/system/scheduling/ChunkHolderManager.java
-@@ -35,6 +35,7 @@ import net.minecraft.server.level.TicketType;
- import net.minecraft.util.SortedArraySet;
- import net.minecraft.util.Unit;
- import net.minecraft.world.level.ChunkPos;
-+import org.bukkit.craftbukkit.scheduler.CraftScheduler;
- import org.bukkit.plugin.Plugin;
- import org.slf4j.Logger;
- import java.io.IOException;
-diff --git a/src/main/java/io/papermc/paper/chunk/system/scheduling/ChunkTaskScheduler.java b/src/main/java/io/papermc/paper/chunk/system/scheduling/ChunkTaskScheduler.java
-index 92f37abe3eb7ad85fd60d3c80acf77dc575b26ea..ad0c294054fa1900372c5cfbacc7a6ce64d8ae55 100644
---- a/src/main/java/io/papermc/paper/chunk/system/scheduling/ChunkTaskScheduler.java
-+++ b/src/main/java/io/papermc/paper/chunk/system/scheduling/ChunkTaskScheduler.java
-@@ -9,6 +9,7 @@ import com.mojang.logging.LogUtils;
- import io.papermc.paper.chunk.system.io.RegionFileIOThread;
- import io.papermc.paper.chunk.system.scheduling.queue.RadiusAwarePrioritisedExecutor;
- import io.papermc.paper.configuration.GlobalConfiguration;
-+import io.papermc.paper.threadedregions.RegionizedServer;
- import io.papermc.paper.util.CoordinateUtils;
- import io.papermc.paper.util.TickThread;
- import java.util.function.BooleanSupplier;
 diff --git a/src/main/java/io/papermc/paper/plugin/provider/type/paper/PaperPluginProviderFactory.java b/src/main/java/io/papermc/paper/plugin/provider/type/paper/PaperPluginProviderFactory.java
 index 6369b13e1fcdbdb25dd9d6e4d3bffdedbee4f739..740d7994a76e73332fb8b4accf388a550e0cf6ce 100644
 --- a/src/main/java/io/papermc/paper/plugin/provider/type/paper/PaperPluginProviderFactory.java
@@ -197,29 +113,8 @@ index bf1856316aa45d2de061e6f4268dd9c63deb1ced..1b116b671fea60013d4f1f9c6adbed04
          }
          // Folia end - block plugins not marked as supported
          // Copied from SimplePluginManager#loadPlugins
-diff --git a/src/main/java/io/papermc/paper/threadedregions/RegionizedData.java b/src/main/java/io/papermc/paper/threadedregions/RegionizedData.java
-index 1f48ada99d6d24880f9bda1cd05d41a4562e42f5..4a0ac6acf90f24939656d4a68cef61fa95d7b0c8 100644
---- a/src/main/java/io/papermc/paper/threadedregions/RegionizedData.java
-+++ b/src/main/java/io/papermc/paper/threadedregions/RegionizedData.java
-@@ -4,6 +4,8 @@ import ca.spottedleaf.concurrentutil.util.Validate;
- import it.unimi.dsi.fastutil.longs.Long2ReferenceOpenHashMap;
- import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
- import net.minecraft.server.level.ServerLevel;
-+import net.minecraft.world.level.Level;
-+
- import javax.annotation.Nullable;
- import java.util.function.Supplier;
- 
-@@ -152,6 +154,7 @@ public final class RegionizedData<T> {
-             throw new IllegalStateException("World check failed: expected world: " + this.world.getWorld().getKey() + ", region world: " + region.getData().world.getWorld().getKey());
-         }
- 
-+
-         return region.getData().getOrCreateRegionizedData(this);
-     }
- 
 diff --git a/src/main/java/io/papermc/paper/threadedregions/RegionizedServer.java b/src/main/java/io/papermc/paper/threadedregions/RegionizedServer.java
-index 1ae61bc6603dd3ac290e3ead20416f9c5b63ff02..6f3e59b29fe96146cdc08b8352438b8f56ac18f0 100644
+index 1ae61bc6603dd3ac290e3ead20416f9c5b63ff02..9099dea8b7053c745a108123bafdfa5d10133db1 100644
 --- a/src/main/java/io/papermc/paper/threadedregions/RegionizedServer.java
 +++ b/src/main/java/io/papermc/paper/threadedregions/RegionizedServer.java
 @@ -19,6 +19,7 @@ import net.minecraft.server.level.ServerLevel;
@@ -230,15 +125,6 @@ index 1ae61bc6603dd3ac290e3ead20416f9c5b63ff02..6f3e59b29fe96146cdc08b8352438b8f
  import org.slf4j.Logger;
  import java.util.ArrayList;
  import java.util.Collections;
-@@ -62,7 +63,7 @@ public final class RegionizedServer {
-         new RegionizedServerInitEvent().callEvent();
- 
-         // now we can schedule
--        this.tickHandle.setInitialStart(System.nanoTime() + TickRegionScheduler.TIME_BETWEEN_TICKS);
-+        this.tickHandle.setInitialStart(System.nanoTime() + TickRegionScheduler.NANOS_PER_TICK_PER_THREAD.getValue());
-         TickRegions.getScheduler().scheduleRegion(this.tickHandle);
-         TickRegions.getScheduler().init();
-     }
 @@ -102,7 +103,7 @@ public final class RegionizedServer {
  
      public static void ensureGlobalTickThread(final String reason) {
@@ -461,41 +347,8 @@ index e91df1496889b15041a297f243d7cfe7c78f1f6c..7b5ccf9576a0d4a67a56b9c6976614c9
      }
  
      public IteratorSafeOrderedReferenceSet<LevelChunk> getChunks() {
-diff --git a/src/main/java/io/papermc/paper/threadedregions/ThreadedRegionizer.java b/src/main/java/io/papermc/paper/threadedregions/ThreadedRegionizer.java
-index fd0053369eb68f0fd596d8acfba4a5247ef8105a..e14e5df2272168b45a04dd186d0e0144c6977fdb 100644
---- a/src/main/java/io/papermc/paper/threadedregions/ThreadedRegionizer.java
-+++ b/src/main/java/io/papermc/paper/threadedregions/ThreadedRegionizer.java
-@@ -14,6 +14,7 @@ import net.minecraft.core.BlockPos;
- import net.minecraft.server.level.ServerLevel;
- import net.minecraft.world.entity.Entity;
- import net.minecraft.world.level.ChunkPos;
-+import net.minecraft.world.level.Level;
- import org.slf4j.Logger;
- import java.lang.invoke.VarHandle;
- import java.util.ArrayList;
-diff --git a/src/main/java/io/papermc/paper/threadedregions/TickData.java b/src/main/java/io/papermc/paper/threadedregions/TickData.java
-index 29f9fed5f02530b3256e6b993e607d4647daa7b6..f414ef7cd151ed3ce79fd24f88fb2b7896616038 100644
---- a/src/main/java/io/papermc/paper/threadedregions/TickData.java
-+++ b/src/main/java/io/papermc/paper/threadedregions/TickData.java
-@@ -2,6 +2,7 @@ package io.papermc.paper.threadedregions;
- 
- import ca.spottedleaf.concurrentutil.util.TimeUtil;
- import io.papermc.paper.util.IntervalledCounter;
-+import io.papermc.paper.util.Tick;
- import it.unimi.dsi.fastutil.longs.LongArrayList;
- 
- import java.util.ArrayDeque;
-@@ -205,7 +206,7 @@ public final class TickData {
-                         // Otherwise use the interval length.
-                         // This is how differenceFromLastTick() works on TickTime when there is no previous interval.
-                         differenceBetweenTicks = Math.max(
--                            TickRegionScheduler.TIME_BETWEEN_TICKS, totalTickTime
-+                                TickRegionScheduler.NANOS_PER_TICK_PER_THREAD.getValue(), totalTickTime
-                         );
-                     }
- 
 diff --git a/src/main/java/io/papermc/paper/threadedregions/TickRegionScheduler.java b/src/main/java/io/papermc/paper/threadedregions/TickRegionScheduler.java
-index ab5f832aafc479eca1c5da012e180d6374e32325..f44277006412ce5db83d6d2f7bf871b61597d815 100644
+index ab5f832aafc479eca1c5da012e180d6374e32325..1305713b18484b48a8b5ebf9f4fc6f8b1fc6cc64 100644
 --- a/src/main/java/io/papermc/paper/threadedregions/TickRegionScheduler.java
 +++ b/src/main/java/io/papermc/paper/threadedregions/TickRegionScheduler.java
 @@ -4,6 +4,8 @@ import ca.spottedleaf.concurrentutil.scheduler.SchedulerThreadPool;
@@ -507,16 +360,7 @@ index ab5f832aafc479eca1c5da012e180d6374e32325..f44277006412ce5db83d6d2f7bf871b6
  import net.minecraft.server.MinecraftServer;
  import net.minecraft.server.level.ServerLevel;
  import net.minecraft.world.level.ChunkPos;
-@@ -33,6 +35,8 @@ public final class TickRegionScheduler {
-     public static final int TICK_RATE = 20;
-     public static final long TIME_BETWEEN_TICKS = 1_000_000_000L / TICK_RATE; // ns
- 
-+    public static final AccessibleThreadLocal<Long> NANOS_PER_TICK_PER_THREAD = new AccessibleThreadLocal<>(() -> TIME_BETWEEN_TICKS);
-+
-     private final SchedulerThreadPool scheduler;
- 
-     public TickRegionScheduler(final int threads) {
-@@ -210,9 +214,9 @@ public final class TickRegionScheduler {
+@@ -210,9 +212,9 @@ public final class TickRegionScheduler {
  
      // By using our own thread object, we can use a field for the current region rather than a ThreadLocal.
      // This is much faster than a thread local, since the thread local has to use a map lookup.
@@ -528,80 +372,6 @@ index ab5f832aafc479eca1c5da012e180d6374e32325..f44277006412ce5db83d6d2f7bf871b6
          private RegionizedWorldData currentTickingWorldRegionizedData;
          private SchedulerThreadPool.SchedulableTick currentTickingTask;
          // Folia start - profiler
-@@ -221,6 +225,7 @@ public final class TickRegionScheduler {
- 
-         public TickThreadRunner(final Runnable run, final String name) {
-             super(run, name);
-+            RegionTickHolder.INSTANCE.onRegionRunnerCreated(this); //Molia - For datapack command
-         }
-     }
- 
-@@ -255,7 +260,7 @@ public final class TickRegionScheduler {
-             this.region = region;
- 
-             this.setScheduledStart(firstStart);
--            this.tickSchedule = new Schedule(firstStart == SchedulerThreadPool.DEADLINE_NOT_SET ? firstStart : firstStart - TIME_BETWEEN_TICKS);
-+            this.tickSchedule = new Schedule(firstStart == SchedulerThreadPool.DEADLINE_NOT_SET ? firstStart : firstStart - NANOS_PER_TICK_PER_THREAD.getValue());
-         }
- 
-         /**
-@@ -264,7 +269,7 @@ public final class TickRegionScheduler {
-          */
-         protected final void updateScheduledStart(final long to) {
-             this.setScheduledStart(to);
--            this.tickSchedule.setLastPeriod(to == SchedulerThreadPool.DEADLINE_NOT_SET ? to : to - TIME_BETWEEN_TICKS);
-+            this.tickSchedule.setLastPeriod(to == SchedulerThreadPool.DEADLINE_NOT_SET ? to : to - NANOS_PER_TICK_PER_THREAD.getValue());
-         }
- 
-         public final void markNonSchedulable() {
-@@ -292,6 +297,8 @@ public final class TickRegionScheduler {
- 
-         @Override
-         public final Boolean runTasks(final BooleanSupplier canContinue) {
-+            NANOS_PER_TICK_PER_THREAD.cleanDeathThreads();
-+
-             if (this.cancelled.get()) {
-                 return null;
-             }
-@@ -364,7 +371,8 @@ public final class TickRegionScheduler {
-             final long tickStart = System.nanoTime();
- 
-             // use max(), don't assume that tickStart >= scheduledStart
--            final int tickCount = Math.max(1, this.tickSchedule.getPeriodsAhead(TIME_BETWEEN_TICKS, tickStart));
-+            final long actuallyTickTime = NANOS_PER_TICK_PER_THREAD.setValue(MinecraftServer.getServer().tickRateManager.nanosecondsPerTick()); //Luminol - For tick command
-+            final int tickCount = Math.max(1, this.tickSchedule.getPeriodsAhead(actuallyTickTime, tickStart)); //Luminol - For tick command
- 
-             if (!this.tryMarkTicking()) {
-                 if (!this.cancelled.get()) {
-@@ -388,7 +396,7 @@ public final class TickRegionScheduler {
-             this.lastTickStart = tickStart;
- 
-             final long scheduledStart = this.getScheduledStart();
--            final long scheduledEnd = scheduledStart + TIME_BETWEEN_TICKS;
-+            final long scheduledEnd = scheduledStart + actuallyTickTime; //Luminol - For tick command
-             new me.earthme.luminol.api.events.TickRegionStartTickEvent(this.region == null ? -1 : this.region.region.id,System.nanoTime()); //Luminol - Threaded regions API
-             synchronized (this) {
-                 this.currentTickData = new TickTime(
-@@ -416,8 +424,8 @@ public final class TickRegionScheduler {
-                 // in order to ensure all regions get their chance at scheduling, we have to ensure that regions
-                 // that exceed the max tick time are not always prioritised over everything else. Thus, we use the greatest
-                 // of the current time and "ideal" next tick start.
--                this.tickSchedule.advanceBy(tickCount, TIME_BETWEEN_TICKS);
--                this.setScheduledStart(TimeUtil.getGreatestTime(tickEnd, this.tickSchedule.getDeadline(TIME_BETWEEN_TICKS)));
-+                this.tickSchedule.advanceBy(tickCount, actuallyTickTime); //Luminol - For tick command
-+                this.setScheduledStart(TimeUtil.getGreatestTime(tickEnd, this.tickSchedule.getDeadline(actuallyTickTime))); //Luminol - For tick command
- 
-                 final TickTime time = new TickTime(
-                     lastTickStart, scheduledStart, tickStart, cpuStart, tickEnd, cpuEnd, MEASURE_CPU_TIME, true
-@@ -563,7 +571,7 @@ public final class TickRegionScheduler {
-             if (this.hasLastTick()) {
-                 return this.tickStart - this.previousTickStart;
-             }
--            return Math.max(TIME_BETWEEN_TICKS, this.tickLength());
-+            return Math.max(NANOS_PER_TICK_PER_THREAD.getValue(), this.tickLength());
-         }
- 
-         /**
 diff --git a/src/main/java/io/papermc/paper/threadedregions/TickRegions.java b/src/main/java/io/papermc/paper/threadedregions/TickRegions.java
 index 78c50292fb25e8703e9c91db892f05456f07d72f..efdfd5b514e6f0368275f0c9d63c38a6a1c30faf 100644
 --- a/src/main/java/io/papermc/paper/threadedregions/TickRegions.java
@@ -798,133 +568,6 @@ index 0000000000000000000000000000000000000000..e022464207f271e0f2047ec60ff593bc
 +
 +    public static <T> T ensureOnTargetRegion(World world,int x,int z,Supplier<T> act){
 +        return CompletableFuture.supplyAsync(act,regionSchedulerAsExecutor(world,x,z)).join();
-+    }
-+}
-diff --git a/src/main/java/me/earthme/lightingluminol/tickcontroller/RegionTickHolder.java b/src/main/java/me/earthme/lightingluminol/tickcontroller/RegionTickHolder.java
-new file mode 100644
-index 0000000000000000000000000000000000000000..7a3b02e39e6c1558250cebb5ada29f25f5c963b4
---- /dev/null
-+++ b/src/main/java/me/earthme/lightingluminol/tickcontroller/RegionTickHolder.java
-@@ -0,0 +1,121 @@
-+package me.earthme.lightingluminol.tickcontroller;
-+
-+import com.google.common.collect.Maps;
-+import io.papermc.paper.threadedregions.TickRegionScheduler;
-+
-+import java.util.ArrayList;
-+import java.util.List;
-+import java.util.Map;
-+import java.util.concurrent.atomic.AtomicBoolean;
-+import java.util.concurrent.atomic.AtomicInteger;
-+import java.util.concurrent.locks.Lock;
-+import java.util.concurrent.locks.LockSupport;
-+import java.util.concurrent.locks.ReentrantLock;
-+
-+public class RegionTickHolder {
-+    public static final RegionTickHolder INSTANCE = new RegionTickHolder();
-+
-+    private final AtomicInteger totalCreated = new AtomicInteger();
-+    private final AtomicInteger totalTicking = new AtomicInteger();
-+    private final AtomicInteger totalIdle = new AtomicInteger();
-+    private final AtomicBoolean schedulerRunnerBlocked = new AtomicBoolean(false);
-+    private volatile boolean global_shouldRunNextTick = true;
-+    private final Map<TickRegionScheduler.TickThreadRunner,Boolean> single_shouldRunNextTick = Maps.newConcurrentMap();
-+    private final Lock accessLock = new ReentrantLock(true);
-+
-+    public List<TickRegionScheduler.TickThreadRunner> getAllRegistedTickThreads(){
-+        this.accessLock.lock();
-+        try {
-+            return new ArrayList<>(this.single_shouldRunNextTick.keySet());
-+        }finally {
-+            this.accessLock.unlock();
-+        }
-+    }
-+
-+    public void updateSchedulerRunnerStats(boolean blocked){
-+        this.schedulerRunnerBlocked.set(blocked);
-+    }
-+
-+    public void releaseAllTickRunners(){
-+        this.accessLock.lock();
-+        try {
-+            this.global_shouldRunNextTick = true;
-+        }finally {
-+            this.accessLock.unlock();
-+        }
-+    }
-+
-+    public void awaitAllTickRunnerIdle(){
-+        for(;;){
-+            if (this.totalTicking.get() == 0 && this.schedulerRunnerBlocked.get()){
-+                this.accessLock.lock();
-+                try {
-+                    if (this.totalIdle.get() == this.single_shouldRunNextTick.size()){
-+                        break;
-+                    }
-+                }finally {
-+                    this.accessLock.unlock();
-+                }
-+            }
-+
-+            LockSupport.parkNanos(1_000_000L);
-+        }
-+    }
-+
-+    public void blockAllTickRunners(){
-+        this.accessLock.lock();
-+        try {
-+            this.global_shouldRunNextTick = false;
-+        }finally {
-+            this.accessLock.unlock();
-+        }
-+    }
-+
-+    public void onRegionBreakOutIdle(){
-+        this.totalIdle.getAndDecrement();
-+    }
-+
-+    public void onRegionRunnerIdle(){
-+        this.totalIdle.getAndIncrement();
-+    }
-+
-+    public void onRegionRunnerFinishedCurrentTick(){
-+        this.totalTicking.getAndDecrement();
-+    }
-+
-+    public void onRegionRunnerStartTicking(){
-+        this.totalTicking.getAndIncrement();
-+    }
-+
-+    public void onRegionRunnerCreated(TickRegionScheduler.TickThreadRunner worker){
-+        this.accessLock.lock();
-+        try {
-+            if (!this.global_shouldRunNextTick){
-+                this.single_shouldRunNextTick.putIfAbsent(worker,false);
-+            }
-+
-+            this.single_shouldRunNextTick.putIfAbsent(worker,true);
-+        }finally {
-+            this.accessLock.unlock();
-+        }
-+        this.totalCreated.getAndIncrement();
-+    }
-+
-+    public void onRegionRunnerDestroyed(TickRegionScheduler.TickThreadRunner worker){
-+        this.accessLock.lock();
-+        try {
-+            this.single_shouldRunNextTick.remove(worker);
-+        }finally {
-+            this.accessLock.unlock();
-+        }
-+    }
-+
-+    public boolean shouldRunNextTick(TickRegionScheduler.TickThreadRunner worker){
-+        this.accessLock.lock();
-+        try {
-+            return this.global_shouldRunNextTick && this.single_shouldRunNextTick.get(worker) || !this.schedulerRunnerBlocked.get();
-+        }finally {
-+            this.accessLock.unlock();
-+        }
 +    }
 +}
 diff --git a/src/main/java/me/earthme/lightingluminol/utils/AccessibleThreadLocal.java b/src/main/java/me/earthme/lightingluminol/utils/AccessibleThreadLocal.java
@@ -1964,34 +1607,3 @@ index d365e26799822f39af2d5a27761bb8b41308297e..ff0ae3516ea0427f0edc2128e5ab81b8
          }
          // Folia end - block plugins not marked as supported
  
-diff --git a/src/main/java/org/spigotmc/WatchdogThread.java b/src/main/java/org/spigotmc/WatchdogThread.java
-index 9e638f72f180ff5ef63ec3dd6cf548c53f7bd4a5..733f5a4f3721900e9cb52d599494316b9403ca58 100644
---- a/src/main/java/org/spigotmc/WatchdogThread.java
-+++ b/src/main/java/org/spigotmc/WatchdogThread.java
-@@ -5,6 +5,9 @@ import java.lang.management.MonitorInfo;
- import java.lang.management.ThreadInfo;
- import java.util.logging.Level;
- import java.util.logging.Logger;
-+
-+import io.papermc.paper.threadedregions.TickRegionScheduler;
-+import me.earthme.lightingluminol.tickcontroller.RegionTickHolder;
- import net.minecraft.server.MinecraftServer;
- import org.bukkit.Bukkit;
- 
-@@ -189,10 +192,14 @@ public final class WatchdogThread extends io.papermc.paper.util.TickThread // Pa
-                 }
-                 // Paper end - Different message for short timeout
-                 log.log( Level.SEVERE, "------------------------------" );
--                log.log( Level.SEVERE, "Server thread dump (Look for plugins here before reporting to Paper!):" ); // Paper
-+                log.log( Level.SEVERE, "Region thread dump:" ); // Paper
-                 io.papermc.paper.chunk.system.scheduling.ChunkTaskScheduler.dumpAllChunkLoadInfo(isLongTimeout); // Paper - rewrite chunk system
-                 this.dumpTickingInfo(); // Paper - log detailed tick information
--                WatchdogThread.dumpThread( ManagementFactory.getThreadMXBean().getThreadInfo( MinecraftServer.getServer().serverThread.getId(), Integer.MAX_VALUE ), log );
-+                //WatchdogThread.dumpThread( ManagementFactory.getThreadMXBean().getThreadInfo( MinecraftServer.getServer().serverThread.getId(), Integer.MAX_VALUE ), log );
-+                for (TickRegionScheduler.TickThreadRunner runner : RegionTickHolder.INSTANCE.getAllRegistedTickThreads()){
-+                    WatchdogThread.dumpThread(ManagementFactory.getThreadMXBean().getThreadInfo(runner.getId()),log);
-+                }
-+                log.log( Level.SEVERE, "------------------------------" );
-                 log.log( Level.SEVERE, "------------------------------" );
-                 //
-                 // Paper start - Only print full dump on long timeouts
