@@ -1,0 +1,76 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: MrHua269 <novau233@163.com>
+Date: Sat, 25 May 2024 13:52:09 +0000
+Subject: [PATCH] Patch more getCurrentWorldData call to WorldDataAccessor
+
+
+diff --git a/src/main/java/io/papermc/paper/chunk/system/RegionizedPlayerChunkLoader.java b/src/main/java/io/papermc/paper/chunk/system/RegionizedPlayerChunkLoader.java
+index 07abf5a326cc7aa8a449b74bd7ac8a43b98528c0..64842b7b353d36d637096049da67235b9cafb61c 100644
+--- a/src/main/java/io/papermc/paper/chunk/system/RegionizedPlayerChunkLoader.java
++++ b/src/main/java/io/papermc/paper/chunk/system/RegionizedPlayerChunkLoader.java
+@@ -141,7 +141,7 @@ public class RegionizedPlayerChunkLoader {
+     public void updatePlayer(final ServerPlayer player) {
+         final PlayerChunkLoaderData loader = player.chunkLoader;
+         if (loader != null) {
+-            player.serverLevel().chunkSource.chunkMap.getNearbyPlayers().tickPlayer(player); // Folia - region threading
++            player.serverLevel().chunkSource.chunkMap.level.regionizedWorldDataAccessor.getAny(player).getNearbyPlayers().tickPlayer(player); // Folia - region threading
+             loader.update();
+         }
+     }
+diff --git a/src/main/java/net/minecraft/core/dispenser/DispenseItemBehavior.java b/src/main/java/net/minecraft/core/dispenser/DispenseItemBehavior.java
+index bee5d0a0516fbae4f550c0a77fcca6afcff8675f..1d17ffc414caecf60eabb7302aa222e331692e03 100644
+--- a/src/main/java/net/minecraft/core/dispenser/DispenseItemBehavior.java
++++ b/src/main/java/net/minecraft/core/dispenser/DispenseItemBehavior.java
+@@ -848,7 +848,7 @@ public interface DispenseItemBehavior {
+                     }
+                 }
+ 
+-                io.papermc.paper.threadedregions.RegionizedWorldData worldData = worldserver.getCurrentWorldData(); // Folia - region threading
++                io.papermc.paper.threadedregions.RegionizedWorldData worldData = worldserver.regionizedWorldDataAccessor.getAny(pointer.pos()); // Folia - region threading
+                 worldData.captureTreeGeneration = true; // Folia - region threading
+                 // CraftBukkit end
+ 
+diff --git a/src/main/java/net/minecraft/server/level/ChunkMap.java b/src/main/java/net/minecraft/server/level/ChunkMap.java
+index 1469c8da2302eeba536d40f0876a297485c5e21b..132986f9dc857d8610d43bccdf3d0ad4a7f09851 100644
+--- a/src/main/java/net/minecraft/server/level/ChunkMap.java
++++ b/src/main/java/net/minecraft/server/level/ChunkMap.java
+@@ -306,7 +306,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+         int index = entity.getType().getCategory().ordinal();
+ 
+         final com.destroystokyo.paper.util.maplist.ReferenceList<ServerPlayer> inRange =
+-            this.getNearbyPlayers().getPlayers(entity.chunkPosition(), io.papermc.paper.util.player.NearbyPlayers.NearbyMapType.TICK_VIEW_DISTANCE);
++            this.level.regionizedWorldDataAccessor.getAny(entity).getNearbyPlayers().getPlayers(entity.chunkPosition(), io.papermc.paper.util.player.NearbyPlayers.NearbyMapType.TICK_VIEW_DISTANCE);
+         if (inRange == null) {
+             return;
+         }
+@@ -323,7 +323,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+         }
+         int idx = mobCategory.ordinal();
+         final com.destroystokyo.paper.util.maplist.ReferenceList<ServerPlayer> inRange =
+-            this.getNearbyPlayers().getPlayersByChunk(chunkX, chunkZ, io.papermc.paper.util.player.NearbyPlayers.NearbyMapType.TICK_VIEW_DISTANCE);
++            this.level.regionizedWorldDataAccessor.getAny(chunkX,chunkZ).getNearbyPlayers().getPlayersByChunk(chunkX, chunkZ, io.papermc.paper.util.player.NearbyPlayers.NearbyMapType.TICK_VIEW_DISTANCE);
+         if (inRange == null) {
+             return;
+         }
+diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
+index 2218c12bfdea5e6cfcce1febdf8724afd0814321..442bff37b7c1230923a9758263661ed8ba50d70d 100644
+--- a/src/main/java/net/minecraft/server/level/ServerLevel.java
++++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
+@@ -616,7 +616,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+     @Override
+     public Player getNearestPlayer(double x, double y, double z, double maxDistance, @Nullable Predicate<Entity> targetPredicate) {
+         if (maxDistance > 0.0D) {
+-            io.papermc.paper.util.player.NearbyPlayers players = this.chunkSource.chunkMap.getNearbyPlayers();
++            io.papermc.paper.util.player.NearbyPlayers players = this.regionizedWorldDataAccessor.getAny((int) x, (int) z).getNearbyPlayers();
+ 
+             com.destroystokyo.paper.util.maplist.ReferenceList<ServerPlayer> nearby = players.getPlayersByBlock(
+                 io.papermc.paper.util.CoordinateUtils.getBlockCoordinate(x),
+@@ -675,7 +675,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+                                    double x, double y, double z) {
+         double range = targetPredicate.range;
+         if (range > 0.0D) {
+-            io.papermc.paper.util.player.NearbyPlayers players = this.chunkSource.chunkMap.getNearbyPlayers();
++            io.papermc.paper.util.player.NearbyPlayers players = this.regionizedWorldDataAccessor.getAny(entity).getNearbyPlayers();
+ 
+             com.destroystokyo.paper.util.maplist.ReferenceList<ServerPlayer> nearby = players.getPlayersByBlock(
+                 io.papermc.paper.util.CoordinateUtils.getBlockCoordinate(x),
