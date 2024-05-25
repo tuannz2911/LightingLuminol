@@ -1,0 +1,212 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: MrHua269 <novau233@163.com>
+Date: Sat, 25 May 2024 14:25:43 +0000
+Subject: [PATCH] Refactor CraftScheduler handle calls
+
+
+diff --git a/src/main/java/io/papermc/paper/plugin/manager/PaperPluginInstanceManager.java b/src/main/java/io/papermc/paper/plugin/manager/PaperPluginInstanceManager.java
+index afc9c6e6e8bc4a4706474134dae5484459531226..7fcc771a3c0ed62fce0aba65a0b8c1c9aab4b792 100644
+--- a/src/main/java/io/papermc/paper/plugin/manager/PaperPluginInstanceManager.java
++++ b/src/main/java/io/papermc/paper/plugin/manager/PaperPluginInstanceManager.java
+@@ -12,6 +12,7 @@ import io.papermc.paper.plugin.provider.classloader.ConfiguredPluginClassLoader;
+ import io.papermc.paper.plugin.provider.classloader.PaperClassLoaderStorage;
+ import io.papermc.paper.plugin.provider.source.DirectoryProviderSource;
+ import io.papermc.paper.plugin.provider.source.FileProviderSource;
++import me.earthme.lightingluminol.CraftSchedulerRunnerManager;
+ import org.bukkit.Bukkit;
+ import org.bukkit.Server;
+ import org.bukkit.World;
+@@ -221,6 +222,7 @@ class PaperPluginInstanceManager {
+             this.server.getPluginManager().callEvent(new PluginDisableEvent(plugin));
+             try {
+                 javaPlugin.setEnabled(false);
++                CraftSchedulerRunnerManager.INSTANCE.onPluginUnload(javaPlugin);
+             } catch (Throwable ex) {
+                 this.server.getLogger().log(Level.SEVERE, "Error occurred while disabling " + pluginName, ex);
+             }
+diff --git a/src/main/java/me/earthme/lightingluminol/CraftSchedulerRunnerManager.java b/src/main/java/me/earthme/lightingluminol/CraftSchedulerRunnerManager.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..adc6506c779fc0a3e719cb0c49f21ca0361c6887
+--- /dev/null
++++ b/src/main/java/me/earthme/lightingluminol/CraftSchedulerRunnerManager.java
+@@ -0,0 +1,85 @@
++package me.earthme.lightingluminol;
++
++import io.papermc.paper.util.TickThread;
++import it.unimi.dsi.fastutil.objects.Reference2ObjectLinkedOpenHashMap;
++import net.minecraft.server.MinecraftServer;
++import org.apache.logging.log4j.LogManager;
++import org.apache.logging.log4j.Logger;
++import org.bukkit.craftbukkit.scheduler.MinecraftInternalPlugin;
++import org.bukkit.plugin.Plugin;
++import org.jetbrains.annotations.NotNull;
++import oshi.jna.platform.mac.SystemB;
++
++import java.util.Map;
++import java.util.concurrent.Executor;
++import java.util.concurrent.Executors;
++import java.util.concurrent.ScheduledExecutorService;
++import java.util.concurrent.locks.Lock;
++import java.util.concurrent.locks.ReadWriteLock;
++import java.util.concurrent.locks.ReentrantLock;
++
++public class CraftSchedulerRunnerManager {
++    public static final CraftSchedulerRunnerManager INSTANCE = new CraftSchedulerRunnerManager();
++    private static final Logger logger = LogManager.getLogger();
++
++    private final Map<Plugin, ScheduledExecutorService> plugin2Schedulers = new Reference2ObjectLinkedOpenHashMap<>();
++    private final ScheduledExecutorService internalScheduler = this.getOrCreateScheduler(new MinecraftInternalPlugin());
++    private final Lock accessLock = new ReentrantLock();
++
++    private CraftSchedulerRunnerManager(){}
++
++    public ScheduledExecutorService getOrCreateScheduler(Plugin plugin){
++        if (plugin instanceof MinecraftInternalPlugin){
++            return this.internalScheduler;
++        }
++
++        this.accessLock.lock();
++        try {
++            ScheduledExecutorService target = this.plugin2Schedulers.get(plugin);
++
++            if (target != null){
++                return target;
++            }
++
++            target = this.wrapNew(plugin);
++
++            logger.info("Wrapped scheduler pool for plugin {}",plugin.getName());
++
++            this.plugin2Schedulers.put(plugin, target);
++            return target;
++        }finally {
++            this.accessLock.unlock();
++        }
++    }
++
++    public void onPluginUnload(Plugin plugin){
++        if (plugin instanceof MinecraftInternalPlugin){
++            return;
++        }
++
++        this.accessLock.lock();
++        try {
++            ScheduledExecutorService target = this.plugin2Schedulers.remove(plugin);
++
++            if (target == null){
++                return;
++            }
++
++            target.shutdownNow();
++        }finally {
++            this.accessLock.unlock();
++        }
++    }
++
++    private final @NotNull ScheduledExecutorService wrapNew(Plugin plugin){
++        final ScheduledExecutorService wrapped = Executors.newSingleThreadScheduledExecutor(task -> {
++           final Thread worker = new TickThread(task,"Scheduler Thread For " + plugin.getName());
++           worker.setPriority(Thread.NORM_PRIORITY - 2);
++           worker.setDaemon(true);
++           worker.setContextClassLoader(MinecraftServer.class.getClassLoader());
++           return worker;
++        });
++
++        return wrapped;
++    }
++}
+diff --git a/src/main/java/org/bukkit/craftbukkit/scheduler/CraftScheduler.java b/src/main/java/org/bukkit/craftbukkit/scheduler/CraftScheduler.java
+index e840a61bb05565db017532b10dd311ff7bc0b588..9e4d1204b170b6bd7b9df6ae023f83466d7a04a5 100644
+--- a/src/main/java/org/bukkit/craftbukkit/scheduler/CraftScheduler.java
++++ b/src/main/java/org/bukkit/craftbukkit/scheduler/CraftScheduler.java
+@@ -8,16 +8,16 @@ import java.util.Comparator;
+ import java.util.Iterator;
+ import java.util.List;
+ import java.util.PriorityQueue;
+-import java.util.concurrent.Callable;
+-import java.util.concurrent.ConcurrentHashMap;
+-import java.util.concurrent.Executor;
+-import java.util.concurrent.Executors;
+-import java.util.concurrent.Future;
++import java.util.concurrent.*;
+ import java.util.concurrent.atomic.AtomicInteger;
+ import java.util.concurrent.atomic.AtomicReference;
+ import java.util.function.Consumer;
+ import java.util.function.IntUnaryOperator;
+ import java.util.logging.Level;
++
++import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
++import me.earthme.lightingluminol.CraftSchedulerRunnerManager;
++import org.bukkit.Bukkit;
+ import org.bukkit.plugin.IllegalPluginAccessException;
+ import org.bukkit.plugin.Plugin;
+ import org.bukkit.scheduler.BukkitRunnable;
+@@ -536,12 +536,25 @@ public class CraftScheduler implements BukkitScheduler {
+         //if (true) throw new UnsupportedOperationException(); // Folia - region threading //Molia - Disable this to support bukkit plugins
+         // Paper start
+         if (!this.isAsyncScheduler && !task.isSync()) {
+-            this.asyncScheduler.handle(task, delay);
++            //this.asyncScheduler.handle(task, delay);
++            ScheduledTask wrapped = null;
++            long actuallyDelay = (long) (delay / 20 * 1000);
++            if (actuallyDelay <= 0){
++                wrapped = Bukkit.getAsyncScheduler().runNow(task.getOwner(),unused -> task.run());
++            }else{
++                wrapped = Bukkit.getAsyncScheduler().runDelayed(task.getOwner(),unused -> task.run(),actuallyDelay, TimeUnit.MILLISECONDS);
++            }
++            task.asyncScheduledTask = wrapped;
+             return task;
+         }
+         // Paper end
+-        task.setNextRun(this.currentTick + delay);
+-        this.addTask(task);
++        Future<?> wrapped;
++        if (delay <= 0){
++            wrapped = CraftSchedulerRunnerManager.INSTANCE.getOrCreateScheduler(task.getOwner()).submit(task);
++        }else{
++            wrapped = CraftSchedulerRunnerManager.INSTANCE.getOrCreateScheduler(task.getOwner()).schedule(task,delay / 20 * 1000,TimeUnit.MILLISECONDS);
++        }
++        task.scheduledFuture = wrapped;
+         return task;
+     }
+ 
+diff --git a/src/main/java/org/bukkit/craftbukkit/scheduler/CraftTask.java b/src/main/java/org/bukkit/craftbukkit/scheduler/CraftTask.java
+index ea26d9464644b5217879b8c21b4da28e57708dcb..81c4f22675fa60d07cb31931020217fac65c26c8 100644
+--- a/src/main/java/org/bukkit/craftbukkit/scheduler/CraftTask.java
++++ b/src/main/java/org/bukkit/craftbukkit/scheduler/CraftTask.java
+@@ -1,8 +1,11 @@
+ package org.bukkit.craftbukkit.scheduler;
+ 
++import java.util.concurrent.Future;
++import java.util.concurrent.ScheduledFuture;
+ import java.util.function.Consumer;
+ 
+ import co.aikar.timings.NullTimingHandler;
++import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
+ import org.bukkit.Bukkit;
+ import org.bukkit.plugin.Plugin;
+ import org.bukkit.scheduler.BukkitTask;
+@@ -35,6 +38,8 @@ public class CraftTask implements BukkitTask, Runnable { // Spigot
+     private final Plugin plugin;
+     private final int id;
+     private final long createdAt = System.nanoTime();
++    public ScheduledTask asyncScheduledTask = null;
++    public Future scheduledFuture = null;
+ 
+     CraftTask() {
+         this(null, null, CraftTask.NO_REPEATING, CraftTask.NO_REPEATING);
+@@ -144,7 +149,13 @@ public class CraftTask implements BukkitTask, Runnable { // Spigot
+ 
+     @Override
+     public void cancel() {
+-        Bukkit.getScheduler().cancelTask(this.id);
++        if (this.scheduledFuture != null){
++            this.scheduledFuture.cancel(false);
++        }
++
++        if (this.asyncScheduledTask != null){
++            this.asyncScheduledTask.cancel();
++        }
+     }
+ 
+     /**
