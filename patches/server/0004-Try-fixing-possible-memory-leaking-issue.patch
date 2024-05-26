@@ -1,0 +1,111 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: MrHua269 <novau233@163.com>
+Date: Sun, 26 May 2024 10:56:38 +0000
+Subject: [PATCH] Try fixing possible memory leaking issue
+
+
+diff --git a/src/main/java/io/papermc/paper/threadedregions/ThreadedRegionizer.java b/src/main/java/io/papermc/paper/threadedregions/ThreadedRegionizer.java
+index fd0053369eb68f0fd596d8acfba4a5247ef8105a..69b2f6182e135ba86ac878956aabfd472f103f11 100644
+--- a/src/main/java/io/papermc/paper/threadedregions/ThreadedRegionizer.java
++++ b/src/main/java/io/papermc/paper/threadedregions/ThreadedRegionizer.java
+@@ -640,6 +640,7 @@ public final class ThreadedRegionizer<R extends ThreadedRegionizer.ThreadedRegio
+         // need to split the region, so we need to kill the old one first
+         region.state = ThreadedRegion.STATE_DEAD;
+         region.onRemove(true);
++        region.regioniser.world.regionizedWorldDataAccessor.removeRegion((ThreadedRegion<TickRegions.TickRegionData, TickRegions.TickRegionSectionData>) region);
+ 
+         // create new regions
+         final Long2ReferenceOpenHashMap<ThreadedRegion<R, S>> newRegionsMap = new Long2ReferenceOpenHashMap<>();
+diff --git a/src/main/java/io/papermc/paper/threadedregions/TickRegions.java b/src/main/java/io/papermc/paper/threadedregions/TickRegions.java
+index e09007f2e4d3a52ad83973f370e88ca49966e012..dfd565ff01bf6c396d7c6025206eb6e9b75e43a7 100644
+--- a/src/main/java/io/papermc/paper/threadedregions/TickRegions.java
++++ b/src/main/java/io/papermc/paper/threadedregions/TickRegions.java
+@@ -251,6 +251,10 @@ public final class TickRegions implements ThreadedRegionizer.RegionCallbacks<Tic
+             ret = regionizedData.createNewValue();
+             this.regionizedData.put(regionizedData, ret);
+ 
++            if (ret instanceof RegionizedWorldData regionizedWorldData){
++                regionizedWorldData.world.regionizedWorldDataAccessor.updateWorldData(this.region,regionizedWorldData);
++            }
++
+             return ret;
+         }
+ 
+diff --git a/src/main/java/me/earthme/lightingluminol/WorldDataAccessor.java b/src/main/java/me/earthme/lightingluminol/WorldDataAccessor.java
+index feb52ca29d01a6a12e771ec1f5b8ed16fde24666..e308cf5af5dc9211b0ac1f5ad379817c5265656c 100644
+--- a/src/main/java/me/earthme/lightingluminol/WorldDataAccessor.java
++++ b/src/main/java/me/earthme/lightingluminol/WorldDataAccessor.java
+@@ -6,17 +6,57 @@ import io.papermc.paper.threadedregions.ThreadedRegionizer;
+ import io.papermc.paper.threadedregions.TickRegionScheduler;
+ import io.papermc.paper.threadedregions.TickRegions;
+ import io.papermc.paper.util.TickThread;
++import it.unimi.dsi.fastutil.objects.Reference2ObjectLinkedOpenHashMap;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.world.entity.Entity;
+ import net.minecraft.world.level.ChunkPos;
+ import net.minecraft.world.level.Level;
+ 
++import java.util.Map;
++import java.util.concurrent.ConcurrentHashMap;
+ import java.util.concurrent.atomic.AtomicReference;
++import java.util.concurrent.locks.Lock;
++import java.util.concurrent.locks.ReadWriteLock;
++import java.util.concurrent.locks.ReentrantReadWriteLock;
+ 
+ public class WorldDataAccessor {
+     private final Level owner;
+     private final boolean ensureLoaded;
++    private final Map<ThreadedRegionizer.ThreadedRegion<TickRegions.TickRegionData, TickRegions.TickRegionSectionData>,RegionizedWorldData> region2Data = new Reference2ObjectLinkedOpenHashMap<>();
++    private final ReadWriteLock accessLock = new ReentrantReadWriteLock();
++
++    public void removeRegion(ThreadedRegionizer.ThreadedRegion<TickRegions.TickRegionData, TickRegions.TickRegionSectionData> region){
++        this.accessLock.writeLock().lock();
++        try {
++            this.region2Data.remove(region);
++        }finally {
++            this.accessLock.writeLock().unlock();
++        }
++    }
++
++    public void updateWorldData(ThreadedRegionizer.ThreadedRegion<TickRegions.TickRegionData, TickRegions.TickRegionSectionData> region,RegionizedWorldData data) {
++        this.accessLock.writeLock().lock();
++        try {
++            if (!this.region2Data.containsKey(region)){
++                this.region2Data.put(region,data);
++                return;
++            }
++
++            this.region2Data.replace(region,data);
++        }finally {
++            this.accessLock.writeLock().unlock();
++        }
++    }
++
++    public RegionizedWorldData getDataOf(ThreadedRegionizer.ThreadedRegion<TickRegions.TickRegionData, TickRegions.TickRegionSectionData> key){
++        this.accessLock.readLock().lock();
++        try {
++            return this.region2Data.get(key);
++        }finally {
++            this.accessLock.readLock().unlock();
++        }
++    }
+ 
+     public WorldDataAccessor(Level owner, boolean ensureLoaded) {
+         this.owner = owner;
+@@ -25,12 +65,10 @@ public class WorldDataAccessor {
+ 
+     public RegionizedWorldData getDirectly(int cposX,int cposZ){
+         final ServerLevel serverLevel = ((ServerLevel) this.owner);
+-        ThreadedRegionizer.ThreadedRegion<TickRegions.TickRegionData, TickRegions.TickRegionSectionData> tickRegionData = serverLevel.regioniser.getRegionAtUnsynchronised(cposX,cposZ);
+-
+-        if (tickRegionData != null){
+-            final TickRegions.TickRegionData regionData = tickRegionData.getData();
++        ThreadedRegionizer.ThreadedRegion<TickRegions.TickRegionData, TickRegions.TickRegionSectionData> targetRegion = serverLevel.regioniser.getRegionAtUnsynchronised(cposX,cposZ);
+ 
+-            return regionData.getOrCreateRegionizedData(serverLevel.worldRegionData);
++        if (targetRegion != null){
++            return this.getDataOf(targetRegion);
+         }
+ 
+         if (ensureLoaded && !TickThread.isTickThreadFor(serverLevel,cposX,cposZ)){
