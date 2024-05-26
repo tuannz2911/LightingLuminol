@@ -1,0 +1,76 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: MrHua269 <novau233@163.com>
+Date: Sun, 26 May 2024 13:54:09 +0000
+Subject: [PATCH] Append missing redirections
+
+
+diff --git a/src/main/java/net/minecraft/server/level/ChunkMap.java b/src/main/java/net/minecraft/server/level/ChunkMap.java
+index 132986f9dc857d8610d43bccdf3d0ad4a7f09851..81ae50f5aabb3523283d24aca623afcda7b320c7 100644
+--- a/src/main/java/net/minecraft/server/level/ChunkMap.java
++++ b/src/main/java/net/minecraft/server/level/ChunkMap.java
+@@ -851,7 +851,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+     boolean anyPlayerCloseEnoughForSpawning(ChunkPos chunkcoordintpair, boolean reducedRange) {
+         // Folia start - region threading
+         if (true) {
+-            java.util.List<ServerPlayer> players = this.level.getLocalPlayers();
++            java.util.List<ServerPlayer> players = this.level.regionizedWorldDataAccessor.getAny(chunkcoordintpair).getLocalPlayers();
+             if (reducedRange) {
+                 for (int i = 0, len = players.size(); i < len; ++i) {
+                     ServerPlayer player = players.get(i);
+@@ -1039,13 +1039,14 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+ 
+                     entity.tracker = playerchunkmap_entitytracker; // Paper - Fast access to tracker
+                     // Folia - region threading
+-                    playerchunkmap_entitytracker.updatePlayers(this.level.getLocalPlayers()); // Folia - region threading
++                    var got = this.level.regionizedWorldDataAccessor.getAny(entity);
++                    playerchunkmap_entitytracker.updatePlayers(got.getLocalPlayers()); // Folia - region threading
+                     if (entity instanceof ServerPlayer) {
+                         ServerPlayer entityplayer = (ServerPlayer) entity;
+ 
+                         this.updatePlayerStatus(entityplayer, true);
+                         // Folia start - region threading
+-                        for (Entity possible : this.level.regionizedWorldDataAccessor.getAny(entity).getLoadedEntities()) {
++                        for (Entity possible : got.getLoadedEntities()) {
+                             if (possible.tracker != null) {
+                                 possible.tracker.updatePlayer(entityplayer);
+                             }
+diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
+index 442bff37b7c1230923a9758263661ed8ba50d70d..71c3d9f5692d7b7d54c6f48f8c04e1418dc7c50b 100644
+--- a/src/main/java/net/minecraft/server/level/ServerLevel.java
++++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
+@@ -649,7 +649,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+             ServerPlayer nearest = null;
+             double nearestDist = Double.MAX_VALUE;
+ 
+-            for (ServerPlayer player : this.getLocalPlayers()) { // Folia - region threading
++            for (ServerPlayer player : this.regionizedWorldDataAccessor.getAny((int) x, (int) z).getLocalPlayers()) { // Folia - region threading
+                 double dist = player.distanceToSqr(x, y, z);
+                 if (dist >= nearestDist) {
+                     continue;
+@@ -705,7 +705,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+ 
+             return nearest;
+         } else {
+-            return this.getNearestEntity(this.getLocalPlayers(), targetPredicate, entity, x, y, z); // Folia - region threading
++            return this.getNearestEntity(this.regionizedWorldDataAccessor.getAny(entity).getLocalPlayers(), targetPredicate, entity, x, y, z); // Folia - region threading
+         }
+     }
+ 
+@@ -2153,7 +2153,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+             explosion.clearToBlow();
+         }
+ 
+-        Iterator iterator = this.getLocalPlayers().iterator(); // Folia - region thraeding
++        Iterator iterator = this.regionizedWorldDataAccessor.getAny((int) x, (int) z).getLocalPlayers().iterator(); // Folia - region thraeding
+ 
+         while (iterator.hasNext()) {
+             ServerPlayer entityplayer = (ServerPlayer) iterator.next();
+@@ -2231,7 +2231,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+ 
+     public <T extends ParticleOptions> int sendParticles(ServerPlayer sender, T t0, double d0, double d1, double d2, int i, double d3, double d4, double d5, double d6, boolean force) {
+         // Paper start - Particle API
+-        return sendParticles(this.getLocalPlayers(), sender, t0, d0, d1, d2, i, d3, d4, d5, d6, force); // Folia - region threading
++        return sendParticles(this.regionizedWorldDataAccessor.getAny(sender).getLocalPlayers(), sender, t0, d0, d1, d2, i, d3, d4, d5, d6, force); // Folia - region threading
+     }
+     public <T extends ParticleOptions> int sendParticles(List<ServerPlayer> receivers, @Nullable ServerPlayer sender, T t0, double d0, double d1, double d2, int i, double d3, double d4, double d5, double d6, boolean force) {
+         // Paper end - Particle API
