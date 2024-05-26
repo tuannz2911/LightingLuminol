@@ -1,10 +1,10 @@
-name: LightingLuminol CI - ver/1.20.4
+name: LightingLuminol CI - dev/1.20.6
 
 on:
   push:
-    branches: [ "ver/1.20.4" ]
+    branches: [ "dev/1.20.6" ]
   pull_request:
-    branches: [ "ver/1.20.4" ]
+    branches: [ "dev/1.20.6" ]
 
 permissions: write-all
 
@@ -20,18 +20,18 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
         with:
-          gradle-version: 8.4
+          gradle-version: 8.7
       - name: Set up JDK
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
-          java-version: '17'
+          distribution: 'zulu'
+          java-version: '21'
       - name: Configure Git User Details
         run: git config --global user.email "ci@luminolmc.com" && git config --global user.name "LuminolMC CI"
       - name: Apply Patches
         run: gradle applyPatches
       - name: CreateJar
-        run: gradle createReobfBundlerJar createReobfPaperclipJar
+        run: gradle createMojmapBundlerJar createMojmapPaperclipJar
       - name: SetENV
         run: sh scripts/SetENV.sh
       - name: Upload Artifact
@@ -46,13 +46,18 @@ jobs:
           tag: ${{ env.tag }}
           name: ${{ env.project_id_b }} ${{ env.mcversion }} - ${{ env.commit_id }}
           body: |
-            📦Version: `${{ env.mcversion }}` | Commit ${{ env.commit_id }} [![download](https://img.shields.io/github/downloads/LuminolMC/${{ env.project_id }}/${{ env.tag }}/total?color=0&style=flat-square)](https://github.com/LuminolMC/${{ env.project_id }}/download/${{ env.tag }}/${{ env.jar }})
+            > [!CAUTION]
+            > 🚨You are trying to download experimental builds!
+            > **<u>DO NOT</u>** use these builds in production, as there may be many bugs and corruption issues.
+            > Please report any and all issues you encounter!
+            
+            📦Version: `${{ env.mcversion }}` | Commit ${{ env.commit_id }} [![download](https://img.shields.io/github/downloads/LuminolMC/${{ env.project_id }}/${{ env.tag }}/total?color=red&style=flat-square)](https://github.com/LuminolMC/${{ env.project_id }}/download/${{ env.tag }}/${{ env.jar }})
             This release is automatically compiled by GitHub Actions
             ### Commit Message
             ${{ env.commit_msg }}
           artifacts: |
             ${{ env.jar_dir }}
-            build/libs/${{ env.project_id }}-${{ env.mcversion }}-bundler.jar
+            ${{ env.jar_dir_bundler }}
           generateReleaseNotes: true
           prerelease: ${{ env.pre }}
           makeLatest: ${{ env.make_latest }}
