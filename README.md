@@ -11,6 +11,11 @@
 
 [English](./README_EN.md) | **中文**
 
+
+> [!WARNING]
+> **此项目目前存在严重可能导致服务器崩溃的[问题](https://github.com/LuminolMC/LightingLuminol/issues/4)，请谨慎使用**</br>
+> **如没有特别需求，请使用我们稳定的[Luminol](https://github.com/LuminolMC/Luminol)服务端**
+
 ## 特性
  - 支持部分Bukkit插件
  - 可配置的原版特性
