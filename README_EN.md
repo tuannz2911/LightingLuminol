@@ -14,6 +14,10 @@
 
 **English** | [中文](./README.md)
 
+> [!WARNING]
+> **This project may have a big [issue](https://github.com/LuminolMC/LightingLuminol/issues/4) that can make your server crash**</br>
+> **If you don't have any special request, plz use our [Luminol](https://github.com/LuminolMC/Luminol) project**
+
 ## Features
  - Supported some Bukkit plugin
  - Configurable vanilla features
