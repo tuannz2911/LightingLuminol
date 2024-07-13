@@ -1,6 +1,6 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
-From: MrHua269 <novau233@163.com>
-Date: Sat, 13 Apr 2024 12:39:47 +0000
+From: MrHua269 <wangxyper@163.com>
+Date: Sat, 13 Jul 2024 20:42:29 +0800
 Subject: [PATCH] Base Dirty Patches
 
 
@@ -445,7 +445,7 @@ index ab5f832aafc479eca1c5da012e180d6374e32325..d4871db7c15e569ea6427e78b5e1e9e7
          private SchedulerThreadPool.SchedulableTick currentTickingTask;
          // Folia start - profiler
 diff --git a/src/main/java/io/papermc/paper/threadedregions/TickRegions.java b/src/main/java/io/papermc/paper/threadedregions/TickRegions.java
-index 78c50292fb25e8703e9c91db892f05456f07d72f..c55b19cda4bd926d9cd18b13c0143b92c0d44443 100644
+index 183fede965c3d227bbcc7e54781869e09796081f..5f9587f136e157f469675194137d23bfacbfafd1 100644
 --- a/src/main/java/io/papermc/paper/threadedregions/TickRegions.java
 +++ b/src/main/java/io/papermc/paper/threadedregions/TickRegions.java
 @@ -12,6 +12,8 @@ import it.unimi.dsi.fastutil.objects.Reference2ReferenceOpenHashMap;
@@ -678,7 +678,7 @@ index 0000000000000000000000000000000000000000..e022464207f271e0f2047ec60ff593bc
 +    }
 +}
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index 1be341252cd0db3b5166eb04f7334b3bb3c814af..47dd58e0d99767d8f4808e5560039be63b2631ad 100644
+index 37e7e88fa75dda6c2b59ed610ec3ae2136c653a5..18c8dc9dd691e5892f9e9bbff3e788e1ec3f4801 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
 @@ -3,9 +3,6 @@ package net.minecraft.server;
@@ -735,7 +735,7 @@ index 1be341252cd0db3b5166eb04f7334b3bb3c814af..47dd58e0d99767d8f4808e5560039be6
      protected WorldData worldData;
      private volatile boolean isSaving;
  
-@@ -2232,7 +2225,8 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -2233,7 +2226,8 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
      }
  
      public int getTickCount() {
@@ -745,7 +745,7 @@ index 1be341252cd0db3b5166eb04f7334b3bb3c814af..47dd58e0d99767d8f4808e5560039be6
      }
  
      public int getSpawnProtectionRadius() {
-@@ -2365,7 +2359,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -2366,7 +2360,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
  
              Objects.requireNonNull(this.packRepository);
              return stream.<Pack>map(resourcepackrepository::getPack).filter(Objects::nonNull).map(Pack::open).collect(ImmutableList.toImmutableList()); // CraftBukkit - decompile error // Paper - decompile error // todo: is this needed anymore?
@@ -754,7 +754,7 @@ index 1be341252cd0db3b5166eb04f7334b3bb3c814af..47dd58e0d99767d8f4808e5560039be6
              MultiPackResourceManager resourcemanager = new MultiPackResourceManager(PackType.SERVER_DATA, immutablelist);
  
              return ReloadableServerResources.loadResources(resourcemanager, iregistrycustom_dimension, this.worldData.enabledFeatures(), this.isDedicatedServer() ? Commands.CommandSelection.DEDICATED : Commands.CommandSelection.INTEGRATED, this.getFunctionCompilationLevel(), this.executor, this).whenComplete((datapackresources, throwable) -> {
-@@ -2387,9 +2381,6 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -2388,9 +2382,6 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
              this.resources.managers.updateRegistryTags(this.registryAccess());
              net.minecraft.world.item.alchemy.PotionBrewing.reload(); // Paper - Custom Potion Mixes
              // Paper start
@@ -818,7 +818,7 @@ index 74483543836d9ed042cc7b9cbbde8d58d6994475..ea830d500a3b26ef4c87f9d4b7e9136e
              // Folia end - region threading
              if (ServerChunkCache.this.runDistanceManagerUpdates()) {
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index ba33c107cfbe9920fc33375daf8e6b62cc794d98..6588c53f94b0f3197fa33b37ba3986a02ebeb0e5 100644
+index 3ab3e61879e5b2ab93fae9ace79deec9305b0df9..eaf17c36b2ed2c3f2b25ca80ddb9a17ab4e3e063 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -2052,7 +2052,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
@@ -831,7 +831,7 @@ index ba33c107cfbe9920fc33375daf8e6b62cc794d98..6588c53f94b0f3197fa33b37ba3986a0
              while (iterator.hasNext()) {
                  // CraftBukkit start - fix SPIGOT-6362
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 8a0cf571195fa8f8771a03cba329dac294bdbece..0d1eb3540d0e844e4cf993ccd173bc5a4dbc2c51 100644
+index 9293fb2dec97e6c6bf5abe5eb7d1878bb7f200d1..d9b6375e84f18938ace78369a3efb3fe4a2f97c2 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -125,6 +125,8 @@ import net.minecraft.world.phys.shapes.VoxelShape;
@@ -1118,7 +1118,7 @@ index ea8852c2b4143e577c2798d63071287eb1c77db6..b5535cba7a2029e6947aed277323fe52
              this.getLogger().log(Level.SEVERE, null, ex);
          }
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-index becb3b07876715d7c39ba4e7289cc5ac85f84412..f5a57709376c20544dc2d63f6fa682c511e44ef6 100644
+index b1681d6c9e8cb423e6027b9955adcff072435520..bdcf2aa78b22708253fc1cdcb7aaddc1a3ea8ea6 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 @@ -147,6 +147,7 @@ import org.bukkit.util.StructureSearchResult;
@@ -1405,7 +1405,7 @@ index becb3b07876715d7c39ba4e7289cc5ac85f84412..f5a57709376c20544dc2d63f6fa682c5
          Preconditions.checkArgument(newValue != null, "GameRule value cannot be null");
  
 diff --git a/src/main/java/org/bukkit/craftbukkit/block/CraftBlock.java b/src/main/java/org/bukkit/craftbukkit/block/CraftBlock.java
-index b451b9df3233355fb16092edc3a4dd63d7d2ff14..083d644e4acee9e5f63bad9c9c045529022fa19e 100644
+index 9efe9fce59a0b4fe7315dc41d1e21615b97e5cf6..772d79494bdfe81ef017b15524c150a5ed24a51e 100644
 --- a/src/main/java/org/bukkit/craftbukkit/block/CraftBlock.java
 +++ b/src/main/java/org/bukkit/craftbukkit/block/CraftBlock.java
 @@ -15,6 +15,7 @@ import net.minecraft.world.item.BoneMealItem;
@@ -1417,10 +1417,10 @@ index b451b9df3233355fb16092edc3a4dd63d7d2ff14..083d644e4acee9e5f63bad9c9c045529
  import net.minecraft.world.level.LightLayer;
  import net.minecraft.world.level.block.Blocks;
 diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
-index a3f6e02bc4b2a62708efc94b44caf27cb9bf5c62..b748495ad88c0ea0e21a46fe5aca7df1f493bcea 100644
+index 51caaac770b063a4be432b06030e325047651e91..4fd09a75922a9104d2d861d0c2ed2f2b03f65008 100644
 --- a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
 +++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
-@@ -1309,7 +1309,8 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
+@@ -1311,7 +1311,8 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
      public boolean teleport(Location location, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause cause, io.papermc.paper.entity.TeleportFlag... flags) {
          // Folia start - region threading
          if (true) {
