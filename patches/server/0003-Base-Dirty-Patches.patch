@@ -145,7 +145,7 @@ index 1ae61bc6603dd3ac290e3ead20416f9c5b63ff02..9099dea8b7053c745a108123bafdfa5d
          ((DedicatedServer)MinecraftServer.getServer()).handleConsoleInputs();
  
 diff --git a/src/main/java/io/papermc/paper/threadedregions/RegionizedWorldData.java b/src/main/java/io/papermc/paper/threadedregions/RegionizedWorldData.java
-index e91df1496889b15041a297f243d7cfe7c78f1f6c..989c2bb1554de660c93cfd5c9c5c433f2ff98ad4 100644
+index e91df1496889b15041a297f243d7cfe7c78f1f6c..3cf6dc4b73634739b4be1c0682e14574490e28b2 100644
 --- a/src/main/java/io/papermc/paper/threadedregions/RegionizedWorldData.java
 +++ b/src/main/java/io/papermc/paper/threadedregions/RegionizedWorldData.java
 @@ -3,6 +3,9 @@ package io.papermc.paper.threadedregions;
@@ -181,97 +181,136 @@ index e91df1496889b15041a297f243d7cfe7c78f1f6c..989c2bb1554de660c93cfd5c9c5c433f
                  into.navigatingMobs.add(iterator.next());
              }
              // block ticking
-@@ -159,7 +164,7 @@ public final class RegionizedWorldData {
+@@ -159,23 +164,25 @@ public final class RegionizedWorldData {
                  final ChunkPos pos = player.chunkPosition();
                  // Note: It is impossible for an entity in the world to _not_ be in an entity chunk, which means
                  // the chunk holder must _exist_, and so the region section exists.
 -                regionToData.get(CoordinateUtils.getChunkKey(pos.x >> chunkToRegionShift, pos.z >> chunkToRegionShift))
-+                from.world.worldDataSwitcher.randomIfNull(regionToData.get(CoordinateUtils.getChunkKey(pos.x >> chunkToRegionShift, pos.z >> chunkToRegionShift)))
++                from.world.worldDataSwitcher.randomIfNull(regionToData, regionToData.get(CoordinateUtils.getChunkKey(pos.x >> chunkToRegionShift, pos.z >> chunkToRegionShift)))
                      .connections.add(conn);
              }
++            from.world.worldDataSwitcher.resetRandomIdx();
              // entities
-@@ -167,7 +172,7 @@ public final class RegionizedWorldData {
+             for (final ServerPlayer player : from.localPlayers) {
                  final ChunkPos pos = player.chunkPosition();
                  // Note: It is impossible for an entity in the world to _not_ be in an entity chunk, which means
                  // the chunk holder must _exist_, and so the region section exists.
 -                final RegionizedWorldData into = regionToData.get(CoordinateUtils.getChunkKey(pos.x >> chunkToRegionShift, pos.z >> chunkToRegionShift));
-+                final RegionizedWorldData into = from.world.worldDataSwitcher.randomIfNull(regionToData.get(CoordinateUtils.getChunkKey(pos.x >> chunkToRegionShift, pos.z >> chunkToRegionShift)));
++                final RegionizedWorldData into = from.world.worldDataSwitcher.randomIfNull(regionToData, regionToData.get(CoordinateUtils.getChunkKey(pos.x >> chunkToRegionShift, pos.z >> chunkToRegionShift)));
                  into.localPlayers.add(player);
                  into.nearbyPlayers.addPlayer(player);
              }
-@@ -175,7 +180,7 @@ public final class RegionizedWorldData {
++            from.world.worldDataSwitcher.resetRandomIdx();
+             for (final Entity entity : from.allEntities) {
                  final ChunkPos pos = entity.chunkPosition();
                  // Note: It is impossible for an entity in the world to _not_ be in an entity chunk, which means
                  // the chunk holder must _exist_, and so the region section exists.
 -                final RegionizedWorldData into = regionToData.get(CoordinateUtils.getChunkKey(pos.x >> chunkToRegionShift, pos.z >> chunkToRegionShift));
-+                final RegionizedWorldData into = from.world.worldDataSwitcher.randomIfNull(regionToData.get(CoordinateUtils.getChunkKey(pos.x >> chunkToRegionShift, pos.z >> chunkToRegionShift)));
++                final RegionizedWorldData into = from.world.worldDataSwitcher.randomIfNull(regionToData, regionToData.get(CoordinateUtils.getChunkKey(pos.x >> chunkToRegionShift, pos.z >> chunkToRegionShift)));
                  into.allEntities.add(entity);
                  // Note: entityTickList is a subset of allEntities
                  if (from.entityTickList.contains(entity)) {
-@@ -201,7 +206,7 @@ public final class RegionizedWorldData {
+@@ -195,20 +202,21 @@ public final class RegionizedWorldData {
+                     into.navigatingMobs.add(mob);
+                 }
+             }
++            from.world.worldDataSwitcher.resetRandomIdx();
+             // block ticking
+             for (final BlockEventData blockEventData : from.blockEvents) {
+                 final BlockPos pos = blockEventData.pos();
                  final int chunkX = pos.getX() >> 4;
                  final int chunkZ = pos.getZ() >> 4;
  
 -                final RegionizedWorldData into = regionToData.get(CoordinateUtils.getChunkKey(chunkX >> chunkToRegionShift, chunkZ >> chunkToRegionShift));
-+                final RegionizedWorldData into = from.world.worldDataSwitcher.randomIfNull(regionToData.get(CoordinateUtils.getChunkKey(chunkX >> chunkToRegionShift, chunkZ >> chunkToRegionShift)));
++                final RegionizedWorldData into = from.world.worldDataSwitcher.randomIfNull(regionToData, regionToData.get(CoordinateUtils.getChunkKey(chunkX >> chunkToRegionShift, chunkZ >> chunkToRegionShift)));
                  // Unlike entities, the chunk holder is not guaranteed to exist for block events, because the block events
                  // is just some list. So if it unloads, I guess it's just lost.
                  if (into != null) {
-@@ -231,7 +236,7 @@ public final class RegionizedWorldData {
+                     into.blockEvents.add(blockEventData);
+                 }
+             }
+-
++            from.world.worldDataSwitcher.resetRandomIdx();
+             final Long2ReferenceOpenHashMap<LevelTicks<Block>> levelTicksBlockRegionData = new Long2ReferenceOpenHashMap<>(regionToData.size(), 0.75f);
+             final Long2ReferenceOpenHashMap<LevelTicks<Fluid>> levelTicksFluidRegionData = new Long2ReferenceOpenHashMap<>(regionToData.size(), 0.75f);
+ 
+@@ -231,23 +239,25 @@ public final class RegionizedWorldData {
                  final int chunkX = pos.getX() >> 4;
                  final int chunkZ = pos.getZ() >> 4;
  
 -                final RegionizedWorldData into = regionToData.get(CoordinateUtils.getChunkKey(chunkX >> chunkToRegionShift, chunkZ >> chunkToRegionShift));
-+                final RegionizedWorldData into = from.world.worldDataSwitcher.randomIfNull(regionToData.get(CoordinateUtils.getChunkKey(chunkX >> chunkToRegionShift, chunkZ >> chunkToRegionShift)));
++                final RegionizedWorldData into = from.world.worldDataSwitcher.randomIfNull(regionToData, regionToData.get(CoordinateUtils.getChunkKey(chunkX >> chunkToRegionShift, chunkZ >> chunkToRegionShift)));
                  if (into != null) {
                      into.pendingBlockEntityTickers.add(tileEntity);
                  } // else: when a chunk unloads, it does not actually _remove_ the tile entity from the list, it just gets
-@@ -242,7 +247,7 @@ public final class RegionizedWorldData {
+                   //       marked as removed. So if there is no section, it's probably removed!
+             }
++            from.world.worldDataSwitcher.resetRandomIdx();
+             for (final TickingBlockEntity tileEntity : from.blockEntityTickers) {
+                 final BlockPos pos = tileEntity.getPos();
                  final int chunkX = pos.getX() >> 4;
                  final int chunkZ = pos.getZ() >> 4;
  
 -                final RegionizedWorldData into = regionToData.get(CoordinateUtils.getChunkKey(chunkX >> chunkToRegionShift, chunkZ >> chunkToRegionShift));
-+                final RegionizedWorldData into = from.world.worldDataSwitcher.randomIfNull(regionToData.get(CoordinateUtils.getChunkKey(chunkX >> chunkToRegionShift, chunkZ >> chunkToRegionShift)));
++                final RegionizedWorldData into = from.world.worldDataSwitcher.randomIfNull(regionToData, regionToData.get(CoordinateUtils.getChunkKey(chunkX >> chunkToRegionShift, chunkZ >> chunkToRegionShift)));
                  if (into != null) {
                      into.blockEntityTickers.add(tileEntity);
                  } // else: when a chunk unloads, it does not actually _remove_ the tile entity from the list, it just gets
-@@ -258,7 +263,7 @@ public final class RegionizedWorldData {
+                   //       marked as removed. So if there is no section, it's probably removed!
+             }
++            from.world.worldDataSwitcher.resetRandomIdx();
+             // time
+             for (final RegionizedWorldData regionizedWorldData : dataSet) {
+                 regionizedWorldData.redstoneTime = from.redstoneTime;
+@@ -258,23 +268,25 @@ public final class RegionizedWorldData {
                  final ChunkPos pos = levelChunk.getPos();
  
                  // Impossible for get() to return null, as the chunk is entity ticking - thus the chunk holder is loaded
 -                regionToData.get(CoordinateUtils.getChunkKey(pos.x >> chunkToRegionShift, pos.z >> chunkToRegionShift))
-+                from.world.worldDataSwitcher.randomIfNull(regionToData.get(CoordinateUtils.getChunkKey(pos.x >> chunkToRegionShift, pos.z >> chunkToRegionShift)))
++                from.world.worldDataSwitcher.randomIfNull(regionToData, regionToData.get(CoordinateUtils.getChunkKey(pos.x >> chunkToRegionShift, pos.z >> chunkToRegionShift)))
                      .entityTickingChunks.add(levelChunk);
              }
++            from.world.worldDataSwitcher.resetRandomIdx();
              for (final Iterator<LevelChunk> iterator = from.tickingChunks.unsafeIterator(); iterator.hasNext();) {
-@@ -266,7 +271,7 @@ public final class RegionizedWorldData {
+                 final LevelChunk levelChunk = iterator.next();
                  final ChunkPos pos = levelChunk.getPos();
  
                  // Impossible for get() to return null, as the chunk is entity ticking - thus the chunk holder is loaded
 -                regionToData.get(CoordinateUtils.getChunkKey(pos.x >> chunkToRegionShift, pos.z >> chunkToRegionShift))
-+                from.world.worldDataSwitcher.randomIfNull(regionToData.get(CoordinateUtils.getChunkKey(pos.x >> chunkToRegionShift, pos.z >> chunkToRegionShift)))
++                from.world.worldDataSwitcher.randomIfNull(regionToData, regionToData.get(CoordinateUtils.getChunkKey(pos.x >> chunkToRegionShift, pos.z >> chunkToRegionShift)))
                      .tickingChunks.add(levelChunk);
              }
++            from.world.worldDataSwitcher.resetRandomIdx();
              // redstone torches
-@@ -274,7 +279,7 @@ public final class RegionizedWorldData {
+             if (from.redstoneUpdateInfos != null && !from.redstoneUpdateInfos.isEmpty()) {
                  for (final net.minecraft.world.level.block.RedstoneTorchBlock.Toggle info : from.redstoneUpdateInfos) {
                      final BlockPos pos = info.pos;
  
 -                    final RegionizedWorldData worldData = regionToData.get(CoordinateUtils.getChunkKey((pos.getX() >> 4) >> chunkToRegionShift, (pos.getZ() >> 4) >> chunkToRegionShift));
-+                    final RegionizedWorldData worldData = from.world.worldDataSwitcher.randomIfNull(regionToData.get(CoordinateUtils.getChunkKey((pos.getX() >> 4) >> chunkToRegionShift, (pos.getZ() >> 4) >> chunkToRegionShift)));
++                    final RegionizedWorldData worldData = from.world.worldDataSwitcher.randomIfNull(regionToData, regionToData.get(CoordinateUtils.getChunkKey((pos.getX() >> 4) >> chunkToRegionShift, (pos.getZ() >> 4) >> chunkToRegionShift)));
                      if (worldData != null) {
                          if (worldData.redstoneUpdateInfos == null) {
                              worldData.redstoneUpdateInfos = new ArrayDeque<>();
-@@ -292,7 +297,7 @@ public final class RegionizedWorldData {
+@@ -283,6 +295,7 @@ public final class RegionizedWorldData {
+                     } // else: chunk unloaded
+                 }
+             }
++            from.world.worldDataSwitcher.resetRandomIdx();
+             // light chunks being worked on
+             for (final Iterator<Long2IntOpenHashMap.Entry> iterator = from.chunksBeingWorkedOn.long2IntEntrySet().fastIterator(); iterator.hasNext();) {
+                 final Long2IntOpenHashMap.Entry entry = iterator.next();
+@@ -292,8 +305,9 @@ public final class RegionizedWorldData {
                  final int value = entry.getIntValue();
  
                  // should never be null, as it is a reference counter for ticket
 -                regionToData.get(CoordinateUtils.getChunkKey(chunkX >> chunkToRegionShift, chunkZ >> chunkToRegionShift)).chunksBeingWorkedOn.put(pos, value);
-+                from.world.worldDataSwitcher.randomIfNull(regionToData.get(CoordinateUtils.getChunkKey(chunkX >> chunkToRegionShift, chunkZ >> chunkToRegionShift))).chunksBeingWorkedOn.put(pos, value);
++                from.world.worldDataSwitcher.randomIfNull(regionToData, regionToData.get(CoordinateUtils.getChunkKey(chunkX >> chunkToRegionShift, chunkZ >> chunkToRegionShift))).chunksBeingWorkedOn.put(pos, value);
              }
++            from.world.worldDataSwitcher.resetRandomIdx();
              // mob spawning
              for (final RegionizedWorldData regionizedWorldData : dataSet) {
-@@ -312,7 +317,7 @@ public final class RegionizedWorldData {
+                 regionizedWorldData.catSpawnerNextTick = from.catSpawnerNextTick;
+@@ -312,7 +326,7 @@ public final class RegionizedWorldData {
      private RegionizedServer.WorldLevelData tickData;
  
      // connections
@@ -280,7 +319,7 @@ index e91df1496889b15041a297f243d7cfe7c78f1f6c..989c2bb1554de660c93cfd5c9c5c433f
  
      // misc. fields
      private boolean isHandlingTick;
-@@ -326,12 +331,12 @@ public final class RegionizedWorldData {
+@@ -326,12 +340,12 @@ public final class RegionizedWorldData {
      }
  
      // entities
@@ -295,7 +334,7 @@ index e91df1496889b15041a297f243d7cfe7c78f1f6c..989c2bb1554de660c93cfd5c9c5c433f
      private final IteratorSafeOrderedReferenceSet<Mob> navigatingMobs = new IteratorSafeOrderedReferenceSet<>();
  
      // block ticking
-@@ -340,8 +345,8 @@ public final class RegionizedWorldData {
+@@ -340,8 +354,8 @@ public final class RegionizedWorldData {
      private final LevelTicks<Fluid> fluidLevelTicks;
  
      // tile entity ticking
@@ -306,7 +345,7 @@ index e91df1496889b15041a297f243d7cfe7c78f1f6c..989c2bb1554de660c93cfd5c9c5c433f
      private boolean tickingBlockEntities;
  
      // time
-@@ -378,8 +383,8 @@ public final class RegionizedWorldData {
+@@ -378,8 +392,8 @@ public final class RegionizedWorldData {
      public boolean preventPoiUpdated = false; // CraftBukkit - SPIGOT-5710
      public boolean captureBlockStates = false;
      public boolean captureTreeGeneration = false;
@@ -317,7 +356,7 @@ index e91df1496889b15041a297f243d7cfe7c78f1f6c..989c2bb1554de660c93cfd5c9c5c433f
      public List<ItemEntity> captureDrops;
      // Paper start
      public int wakeupInactiveRemainingAnimals;
-@@ -594,11 +599,8 @@ public final class RegionizedWorldData {
+@@ -594,11 +608,8 @@ public final class RegionizedWorldData {
      }
  
      public void addEntityTickingEntity(final Entity entity) {
@@ -330,7 +369,7 @@ index e91df1496889b15041a297f243d7cfe7c78f1f6c..989c2bb1554de660c93cfd5c9c5c433f
      }
  
      public boolean hasEntityTickingEntity(final Entity entity) {
-@@ -606,11 +608,8 @@ public final class RegionizedWorldData {
+@@ -606,11 +617,8 @@ public final class RegionizedWorldData {
      }
  
      public void removeEntityTickingEntity(final Entity entity) {
@@ -343,7 +382,7 @@ index e91df1496889b15041a297f243d7cfe7c78f1f6c..989c2bb1554de660c93cfd5c9c5c433f
      }
  
      public void forEachTickingEntity(final Consumer<Entity> action) {
-@@ -625,15 +624,12 @@ public final class RegionizedWorldData {
+@@ -625,15 +633,12 @@ public final class RegionizedWorldData {
      }
  
      public void addEntity(final Entity entity) {
@@ -360,7 +399,7 @@ index e91df1496889b15041a297f243d7cfe7c78f1f6c..989c2bb1554de660c93cfd5c9c5c433f
          }
      }
  
-@@ -642,34 +638,25 @@ public final class RegionizedWorldData {
+@@ -642,34 +647,25 @@ public final class RegionizedWorldData {
      }
  
      public void removeEntity(final Entity entity) {
@@ -398,7 +437,7 @@ index e91df1496889b15041a297f243d7cfe7c78f1f6c..989c2bb1554de660c93cfd5c9c5c433f
      }
  
      // block ticking hooks
-@@ -742,12 +729,12 @@ public final class RegionizedWorldData {
+@@ -742,12 +738,12 @@ public final class RegionizedWorldData {
      // ticking chunks
      public void addEntityTickingChunk(final LevelChunk levelChunk) {
          this.entityTickingChunks.add(levelChunk);
@@ -413,7 +452,7 @@ index e91df1496889b15041a297f243d7cfe7c78f1f6c..989c2bb1554de660c93cfd5c9c5c433f
      }
  
      public IteratorSafeOrderedReferenceSet<LevelChunk> getEntityTickingChunks() {
-@@ -770,12 +757,12 @@ public final class RegionizedWorldData {
+@@ -770,12 +766,12 @@ public final class RegionizedWorldData {
  
      public void addChunk(final LevelChunk levelChunk) {
          this.chunks.add(levelChunk);
@@ -429,7 +468,7 @@ index e91df1496889b15041a297f243d7cfe7c78f1f6c..989c2bb1554de660c93cfd5c9c5c433f
  
      public IteratorSafeOrderedReferenceSet<LevelChunk> getChunks() {
 diff --git a/src/main/java/io/papermc/paper/threadedregions/TickRegionScheduler.java b/src/main/java/io/papermc/paper/threadedregions/TickRegionScheduler.java
-index ab5f832aafc479eca1c5da012e180d6374e32325..d4871db7c15e569ea6427e78b5e1e9e706e88f1f 100644
+index ab5f832aafc479eca1c5da012e180d6374e32325..2b892dcccdc8810d732f44af0e82049e85ed9dec 100644
 --- a/src/main/java/io/papermc/paper/threadedregions/TickRegionScheduler.java
 +++ b/src/main/java/io/papermc/paper/threadedregions/TickRegionScheduler.java
 @@ -210,9 +210,9 @@ public final class TickRegionScheduler {
@@ -444,6 +483,14 @@ index ab5f832aafc479eca1c5da012e180d6374e32325..d4871db7c15e569ea6427e78b5e1e9e7
          private RegionizedWorldData currentTickingWorldRegionizedData;
          private SchedulerThreadPool.SchedulableTick currentTickingTask;
          // Folia start - profiler
+@@ -410,6 +410,7 @@ public final class TickRegionScheduler {
+                 // regionFailed will schedule a shutdown, so we should avoid letting this region tick further
+                 return false;
+             } finally {
++                if (this.region != null) { this.region.region.regioniser.world.worldDataSwitcher.onTickFinished(); }
+                 final long tickEnd = System.nanoTime();
+                 final long cpuEnd = MEASURE_CPU_TIME ? THREAD_MX_BEAN.getCurrentThreadCpuTime() : 0L;
+ 
 diff --git a/src/main/java/io/papermc/paper/threadedregions/TickRegions.java b/src/main/java/io/papermc/paper/threadedregions/TickRegions.java
 index 183fede965c3d227bbcc7e54781869e09796081f..5f9587f136e157f469675194137d23bfacbfafd1 100644
 --- a/src/main/java/io/papermc/paper/threadedregions/TickRegions.java
@@ -600,19 +647,18 @@ index 620e12a38c67230ad8591a4a32bcb932426356cc..d0bbed2de43a91af33e470c87657f741
  
 diff --git a/src/main/java/me/earthme/lightingluminol/RegonizedWorldDataSwitcher.java b/src/main/java/me/earthme/lightingluminol/RegonizedWorldDataSwitcher.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..d4e641e0ccc5f83f76a806f675d327c4964c3473
+index 0000000000000000000000000000000000000000..40b904249eeab6e2691020e5c4145ba18bd8d6db
 --- /dev/null
 +++ b/src/main/java/me/earthme/lightingluminol/RegonizedWorldDataSwitcher.java
-@@ -0,0 +1,36 @@
+@@ -0,0 +1,61 @@
 +package me.earthme.lightingluminol;
 +
 +import io.papermc.paper.threadedregions.RegionizedWorldData;
++import it.unimi.dsi.fastutil.longs.Long2ReferenceOpenHashMap;
 +
 +
 +public class RegonizedWorldDataSwitcher {
 +    private volatile RegionizedWorldData lastMatch = null;
-+    private RegionizedWorldData[] randomArrayAccess = new RegionizedWorldData[32];
-+    private int lastIndex = 0;
 +
 +    public RegionizedWorldData getLastMatch(){
 +        return this.lastMatch;
@@ -620,24 +666,50 @@ index 0000000000000000000000000000000000000000..d4e641e0ccc5f83f76a806f675d327c4
 +
 +    public void updateCurrent(RegionizedWorldData data){
 +        this.lastMatch = data;
-+        synchronized (this){
-+            if (this.lastIndex + 1 == this.randomArrayAccess.length){
-+                this.lastIndex = 0;
-+            }
-+
-+            this.randomArrayAccess[this.lastIndex++] = data;
-+        }
 +    }
 +
-+    public RegionizedWorldData randomIfNull(RegionizedWorldData input){
-+        if (input != null){
-+            return input;
++    private final ThreadLocal<Integer> randomIndex = ThreadLocal.withInitial(() -> 0);
++    private final ThreadLocal<Integer> calledTimes = ThreadLocal.withInitial(() -> 0);
++
++    public void onTickFinished(){
++        this.randomIndex.remove();
++        this.calledTimes.remove();
++    }
++
++    public void resetRandomIdx(){
++        this.randomIndex.set(0);
++        this.calledTimes.set(0);
++    }
++
++    public RegionizedWorldData randomIfNull(Long2ReferenceOpenHashMap<RegionizedWorldData> regionToData, RegionizedWorldData data){
++        if (data != null){
++            return data;
 +        }
 +
-+        synchronized (this){
-+            final RegionizedWorldData got = this.randomArrayAccess[this.lastIndex];
-+            return got != null ? got : this.lastMatch;
++        int idx = this.randomIndex.get();
++
++        if (this.calledTimes.get() / regionToData.size() >= 400){ //TODO Is that a truly exact value?
++            this.calledTimes.set(0);
++            this.randomIndex.set(idx+1);
 +        }
++
++        if (idx > regionToData.size()){
++            this.randomIndex.set(0);
++            idx = 0;
++        }
++
++        int curr = 0;
++        RegionizedWorldData result = this.getLastMatch();
++
++        for (RegionizedWorldData target : regionToData.values()){
++            if (curr == idx){
++                result = target;
++            }
++
++            curr++;
++        }
++
++        return result;
 +    }
 +}
 diff --git a/src/main/java/me/earthme/lightingluminol/SchedulerUtil.java b/src/main/java/me/earthme/lightingluminol/SchedulerUtil.java
