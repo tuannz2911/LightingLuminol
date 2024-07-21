@@ -1064,6 +1064,19 @@ index 34c0d9fe03cc834e949889f9c4f8269206c18040..4953371d205a1c3982a29252a51dcc99
      public final Vec3 speed;
      public final float yRot;
      public final float xRot;
+diff --git a/src/main/java/net/minecraft/world/level/redstone/CollectingNeighborUpdater.java b/src/main/java/net/minecraft/world/level/redstone/CollectingNeighborUpdater.java
+index a6bc5c5053f1fce822166d0cd1ea67dc490dc0af..189d9dd4716434b4a206b321118d8558fab01434 100644
+--- a/src/main/java/net/minecraft/world/level/redstone/CollectingNeighborUpdater.java
++++ b/src/main/java/net/minecraft/world/level/redstone/CollectingNeighborUpdater.java
+@@ -67,7 +67,7 @@ public class CollectingNeighborUpdater implements NeighborUpdater {
+         }
+     }
+ 
+-    private void runUpdates() {
++    private synchronized void runUpdates() {
+         try {
+             while (!this.stack.isEmpty() || !this.addedThisLayer.isEmpty()) {
+                 for (int i = this.addedThisLayer.size() - 1; i >= 0; i--) {
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
 index ea8852c2b4143e577c2798d63071287eb1c77db6..b5535cba7a2029e6947aed277323fe52f7c69f9d 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
