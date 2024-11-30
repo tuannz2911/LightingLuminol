@@ -20,7 +20,7 @@ nbactions.xml
 
 # Gradle
 !gradle-wrapper.jar
-.gradle/
+.gradle
 build/
 */build/
 
@@ -33,7 +33,6 @@ target/
 dependency-reduced-pom.xml
 
 # various other potential build files
-build/
 bin/
 dist/
 manifest.mf
@@ -52,7 +51,10 @@ manifest.mf
 run/
 
 build-data/
-Hearse-API
-Hearse-Server
+LightingLuminol-API
+LightingLuminol-API/*
+LightingLuminol-Server
+LightingLuminol-Server/*
+paper-api-generator
 *.jar
 /patches/todo/
