@@ -1,10 +1,10 @@
-name: LightingLuminol CI - dev/1.20.6
+name: LightingLuminol CI - dev/1.21.3
 
 on:
   push:
-    branches: [ "dev/1.21.1" ]
+    branches: [ "dev/1.21.3" ]
   pull_request:
-    branches: [ "dev/1.21.1" ]
+    branches: [ "dev/1.21.3" ]
 
 permissions: write-all
 
@@ -20,7 +20,7 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
         with:
-          gradle-version: 8.7
+          gradle-version: 8.10.2
       - name: Set up JDK
         uses: actions/setup-java@v4
         with:
@@ -62,10 +62,3 @@ jobs:
           prerelease: ${{ env.pre }}
           makeLatest: ${{ env.make_latest }}
           token: "${{ secrets.GITHUB_TOKEN }}"
-      - name: Push to API
-        if: "!contains(github.event.commits[0].message, '[release skip]')"
-        env:
-          secret_v2: ${{ secrets.API_KEY }}
-          tag: ${{ env.tag }}
-          project_id: ${{ env.project_id }}
-        run: sh scripts/PushToAPI.sh

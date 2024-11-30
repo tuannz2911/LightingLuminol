@@ -27,7 +27,7 @@ Any versions are available in the [release](https://github.com/LuminolMC/Lightin
 ## Build
 To build a paperclip jar, you need to run the following command. You can find the jar in build/libs(Note: JDK17 is needed)
  ```shell
- ./gradlew applyPatches && ./gradlew createReobfPaperclipJar
+ ./gradlew applyPatches && ./gradlew createMojmapPaperclipJar
 ```
 <!-- ## Using API
 For gradle:

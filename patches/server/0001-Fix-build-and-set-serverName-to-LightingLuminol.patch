@@ -5,28 +5,33 @@ Subject: [PATCH] Fix build and set serverName to LightingLuminol
 
 
 diff --git a/build.gradle.kts b/build.gradle.kts
-index ab07c307bea0d3b79a6239bdcca9714e1ddf3b28..82a65f08105a5b7fd4fb0b780259b3a739f43270 100644
+index 716301695b9cca8011ce01ff0f4aaf42dd594495..49f4304fef24e3900bd792ccdf05ecdccc858762 100644
 --- a/build.gradle.kts
 +++ b/build.gradle.kts
-@@ -13,7 +13,7 @@ configurations.named(log4jPlugins.compileClasspathConfigurationName) {
- val alsoShade: Configuration by configurations.creating
+@@ -25,7 +25,7 @@ abstract class MockitoAgentProvider : CommandLineArgumentProvider {
+ // Paper end - configure mockito agent that is needed in newer java versions
  
  dependencies {
 -    implementation(project(":luminol-api")) // Folia // Luminol
 +    implementation(project(":lightingluminol-api"))//Luminol //LightingLuminol
      implementation("com.electronwill.night-config:toml:3.6.6") // Luminol - Night config
      // Paper start
-     implementation("org.jline:jline-terminal-jansi:3.21.0")
-diff --git a/src/main/java/io/papermc/paper/ServerBuildInfoImpl.java b/src/main/java/io/papermc/paper/ServerBuildInfoImpl.java
-index 673a81734a0903a0790f3007772642d3d9a044cc..31f3c9039bf7e8191f1a207276f73cb75dd8f57e 100644
---- a/src/main/java/io/papermc/paper/ServerBuildInfoImpl.java
-+++ b/src/main/java/io/papermc/paper/ServerBuildInfoImpl.java
-@@ -31,7 +31,7 @@ public record ServerBuildInfoImpl(
-     private static final String ATTRIBUTE_GIT_COMMIT = "Git-Commit";
- 
-     private static final String BRAND_PAPER_NAME = "Paper";
--    private static final String BRAND_LUMINOL_NAME = "Luminol";
-+    private static final String BRAND_LUMINOL_NAME = "LightingLuminol"; //LightingLuminol
- 
-     private static final String BUILD_DEV = "DEV";
- 
+     implementation("org.jline:jline-terminal-ffm:3.27.1") // use ffm on java 22+
+@@ -108,14 +108,14 @@ tasks.jar {
+         val gitBranch = git("rev-parse", "--abbrev-ref", "HEAD").getText().trim() // Paper
+         attributes(
+             "Main-Class" to "org.bukkit.craftbukkit.Main",
+-            "Implementation-Title" to "Luminol", // Folia // Luminol
++            "Implementation-Title" to "LightingLuminol", // Folia // Luminol // LightingLuminol
+             "Implementation-Version" to implementationVersion,
+             "Implementation-Vendor" to date, // Paper
+-            "Specification-Title" to "Luminol", // Folia // Luminol
++            "Specification-Title" to "LightingLuminol", // Folia // Luminol // LightingLuminol
+             "Specification-Version" to project.version,
+             "Specification-Vendor" to "LuminolMC Team", // Luminol
+             "Brand-Id" to "luminolmc:luminol", // Folia // Luminol
+-            "Brand-Name" to "Luminol", // Folia // Luminol
++            "Brand-Name" to "LightingLuminol", // Folia // Luminol // LightingLuminol
+             "Build-Number" to (build ?: ""),
+             "Build-Time" to Instant.now().toString(),
+             "Git-Branch" to gitBranch, // Paper
