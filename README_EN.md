@@ -25,9 +25,9 @@
 Any versions are available in the [release](https://github.com/LuminolMC/LightingLuminol/releases), also you can build it by yourself through [the following steps](./README_EN.md#Build).
 
 ## Build
-To build a paperclip jar, you need to run the following command. You can find the jar in build/libs(Note: JDK17 is needed)
+To build a paperclip jar, you need to run the following command. You can find the jar in build/libs(Note: JDK21 is needed)
  ```shell
- ./gradlew applyPatches && ./gradlew createReobfPaperclipJar
+ ./gradlew applyPatches && ./gradlew createMojmapPaperclipJar
 ```
 <!-- ## Using API
 For gradle:
