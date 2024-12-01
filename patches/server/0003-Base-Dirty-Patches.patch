@@ -218,7 +218,7 @@ index fc053ded0c14b76a1c6c82b59d3fd320372a3293..04fcf60760970a73a37a23c2a9df50f5
          ((DedicatedServer)MinecraftServer.getServer()).handleConsoleInputs();
  
 diff --git a/src/main/java/io/papermc/paper/threadedregions/RegionizedWorldData.java b/src/main/java/io/papermc/paper/threadedregions/RegionizedWorldData.java
-index 1b741d4bccfd45beeec43300f44770516c0d850e..669918ce249707ed3565ab7dd5cfe70ded56cead 100644
+index 3c37ad27488486f9bb0f972369ccaee2284df673..bbf9a83208187f33f15c5afd87d9d42c102a709e 100644
 --- a/src/main/java/io/papermc/paper/threadedregions/RegionizedWorldData.java
 +++ b/src/main/java/io/papermc/paper/threadedregions/RegionizedWorldData.java
 @@ -6,12 +6,12 @@ import ca.spottedleaf.moonrise.common.misc.NearbyPlayers;
@@ -392,7 +392,7 @@ index 1b741d4bccfd45beeec43300f44770516c0d850e..669918ce249707ed3565ab7dd5cfe70d
      private final NearbyPlayers nearbyPlayers;
      private final ReferenceList<Entity> allEntities = new ReferenceList<>(EMPTY_ENTITY_ARRAY);
      private final ReferenceList<Entity> loadedEntities = new ReferenceList<>(EMPTY_ENTITY_ARRAY);
-@@ -361,8 +369,8 @@ public final class RegionizedWorldData {
+@@ -362,8 +370,8 @@ public final class RegionizedWorldData {
      private final LevelTicks<Fluid> fluidLevelTicks;
  
      // tile entity ticking
@@ -403,7 +403,7 @@ index 1b741d4bccfd45beeec43300f44770516c0d850e..669918ce249707ed3565ab7dd5cfe70d
      private boolean tickingBlockEntities;
  
      // time
-@@ -401,8 +409,8 @@ public final class RegionizedWorldData {
+@@ -402,8 +410,8 @@ public final class RegionizedWorldData {
      public boolean captureBlockStates = false;
      public boolean captureTreeGeneration = false;
      public boolean isBlockPlaceCancelled = false; // Paper - prevent calling cleanup logic when undoing a block place upon a cancelled BlockPlaceEvent
@@ -414,7 +414,7 @@ index 1b741d4bccfd45beeec43300f44770516c0d850e..669918ce249707ed3565ab7dd5cfe70d
      public List<ItemEntity> captureDrops;
      // Paper start
      public int wakeupInactiveRemainingAnimals;
-@@ -574,11 +582,8 @@ public final class RegionizedWorldData {
+@@ -575,11 +583,8 @@ public final class RegionizedWorldData {
      }
  
      public void addEntityTickingEntity(final Entity entity) {
@@ -427,7 +427,7 @@ index 1b741d4bccfd45beeec43300f44770516c0d850e..669918ce249707ed3565ab7dd5cfe70d
      }
  
      public boolean hasEntityTickingEntity(final Entity entity) {
-@@ -586,11 +591,8 @@ public final class RegionizedWorldData {
+@@ -587,11 +592,8 @@ public final class RegionizedWorldData {
      }
  
      public void removeEntityTickingEntity(final Entity entity) {
@@ -440,7 +440,7 @@ index 1b741d4bccfd45beeec43300f44770516c0d850e..669918ce249707ed3565ab7dd5cfe70d
      }
  
      public void forEachTickingEntity(final Consumer<Entity> action) {
-@@ -605,14 +607,11 @@ public final class RegionizedWorldData {
+@@ -606,14 +608,11 @@ public final class RegionizedWorldData {
      }
  
      public void addEntity(final Entity entity) {
@@ -456,7 +456,7 @@ index 1b741d4bccfd45beeec43300f44770516c0d850e..669918ce249707ed3565ab7dd5cfe70d
          }
      }
  
-@@ -621,33 +620,24 @@ public final class RegionizedWorldData {
+@@ -622,33 +621,24 @@ public final class RegionizedWorldData {
      }
  
      public void removeEntity(final Entity entity) {
@@ -493,7 +493,7 @@ index 1b741d4bccfd45beeec43300f44770516c0d850e..669918ce249707ed3565ab7dd5cfe70d
      }
  
      // block ticking hooks
-@@ -739,7 +729,7 @@ public final class RegionizedWorldData {
+@@ -740,7 +730,7 @@ public final class RegionizedWorldData {
  
      public void removeTickingChunk(final ServerChunkCache.ChunkAndHolder holder) {
          this.tickingChunks.remove(holder);
@@ -502,7 +502,7 @@ index 1b741d4bccfd45beeec43300f44770516c0d850e..669918ce249707ed3565ab7dd5cfe70d
      }
  
      public ReferenceList<ServerChunkCache.ChunkAndHolder> getTickingChunks() {
-@@ -748,12 +738,12 @@ public final class RegionizedWorldData {
+@@ -749,12 +739,12 @@ public final class RegionizedWorldData {
  
      public void addChunk(final ServerChunkCache.ChunkAndHolder holder) {
          this.chunks.add(holder);
@@ -716,10 +716,10 @@ index a5fc3187438467d24a3143a01188824bb7120b2a..a52b164a764ac296171b75e53531b343
              // Folia end - region threading
              // Paper start - rewrite chunk system
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index 377844d109411b43b28ece71bc714702e012621e..71d08b1b5cb2e806caeb3a08a9f1678d6289cd54 100644
+index 0eba44f94da54716e94f00b919124eedbed53514..2f15fbb10814de1c01efd8ff5541141b70eb080c 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
-@@ -1882,7 +1882,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
+@@ -1891,7 +1891,7 @@ public class ServerLevel extends Level implements ServerEntityGetter, WorldGenLe
  
          if (Shapes.joinIsNotEmpty(voxelshape, voxelshape1, BooleanOp.NOT_SAME)) {
              List<PathNavigation> list = new ObjectArrayList();
@@ -828,7 +828,7 @@ index 6161137e2249d592e2b6c7e0b94b7163b55788c7..6473cdf7c163d668ff9cb44b5d29e515
      }
  
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-index 5cc71c882dba16034c976f8e6eb98a1616b67030..585919c13e708c86c15bc017e654be7796e289e8 100644
+index 5cc71c882dba16034c976f8e6eb98a1616b67030..399629ec88806e55559014e955073ab1785dc530 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
 @@ -1,5 +1,6 @@
