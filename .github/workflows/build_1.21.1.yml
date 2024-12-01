@@ -2,9 +2,6 @@ name: LightingLuminol CI - dev/1.20.6
 
 on:
   push:
-    branches: [ "dev/1.21.1" ]
-  pull_request:
-    branches: [ "dev/1.21.1" ]
 
 permissions: write-all
 
@@ -30,42 +27,8 @@ jobs:
         run: git config --global user.email "ci@luminolmc.com" && git config --global user.name "LuminolMC CI"
       - name: Apply Patches
         run: gradle applyPatches
-      - name: CreateJar
-        run: gradle createMojmapBundlerJar createMojmapPaperclipJar
-      - name: SetENV
-        run: sh scripts/SetENV.sh
       - name: Upload Artifact
         uses: "actions/upload-artifact@v4"
         with:
           name: "${{ env.project_id_b }} CI Artifacts"
-          path: "build/libs/*.jar"
-      - name: Create Release
-        if: "!contains(github.event.commits[0].message, '[release skip]')"
-        uses: ncipollo/release-action@v1.14.0
-        with:
-          tag: ${{ env.tag }}
-          name: ${{ env.project_id_b }} ${{ env.mcversion }} - ${{ env.commit_id }}
-          body: |
-            > [!CAUTION]
-            > 🚨You are trying to download experimental builds!
-            > **<u>DO NOT</u>** use these builds in production, as there may be many bugs and corruption issues.
-            > Please report any and all issues you encounter!
-            
-            📦Version: `${{ env.mcversion }}` | Commit ${{ env.commit_id }} [![download](https://img.shields.io/github/downloads/LuminolMC/${{ env.project_id }}/${{ env.tag }}/total?color=red&style=flat-square)](https://github.com/LuminolMC/${{ env.project_id }}/download/${{ env.tag }}/${{ env.jar }})
-            This release is automatically compiled by GitHub Actions
-            ### Commit Message
-            ${{ env.commit_msg }}
-          artifacts: |
-            ${{ env.jar_dir }}
-            ${{ env.jar_dir_bundler }}
-          generateReleaseNotes: true
-          prerelease: ${{ env.pre }}
-          makeLatest: ${{ env.make_latest }}
-          token: "${{ secrets.GITHUB_TOKEN }}"
-      - name: Push to API
-        if: "!contains(github.event.commits[0].message, '[release skip]')"
-        env:
-          secret_v2: ${{ secrets.API_KEY }}
-          tag: ${{ env.tag }}
-          project_id: ${{ env.project_id }}
-        run: sh scripts/PushToAPI.sh
+          path: "*"
